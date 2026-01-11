@@ -146,7 +146,7 @@ exports.confirmReceipt = (0, https_1.onCall)({ region: "us-central1" }, async (r
 // CHECK EMAIL EXISTS
 // ============================================
 /**
- * Verifica si un email ya está registrado en client_accounts
+ * Verifica si un email ya está registrado en client_accounts O en Firebase Auth
  * @param email - Email a verificar
  * @returns { exists: boolean }
  */
@@ -166,10 +166,37 @@ exports.checkEmailExists = (0, https_1.onCall)({ region: "us-central1" }, async 
         .collection("client_accounts")
         .doc(emailNormalized)
         .get();
-    return {
-        exists: accountDoc.exists,
-        email: emailNormalized,
-    };
+    // Si existe en client_accounts, retornar true
+    if (accountDoc.exists) {
+        return {
+            exists: true,
+            email: emailNormalized,
+        };
+    }
+    // También verificar en Firebase Auth
+    try {
+        await admin.auth().getUserByEmail(emailNormalized);
+        // Si no lanza error, el usuario existe en Auth
+        return {
+            exists: true,
+            email: emailNormalized,
+        };
+    }
+    catch (error) {
+        const authError = error;
+        // Si el error es "user-not-found", el email no existe
+        if (authError.code === "auth/user-not-found") {
+            return {
+                exists: false,
+                email: emailNormalized,
+            };
+        }
+        // Cualquier otro error, asumimos que no existe para no bloquear
+        return {
+            exists: false,
+            email: emailNormalized,
+        };
+    }
 });
 // ============================================
 // REQUEST EMAIL CODE
