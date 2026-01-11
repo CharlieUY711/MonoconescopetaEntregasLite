@@ -20,12 +20,6 @@ export function Hero() {
               Solicitar presupuesto
               <ArrowRight className="h-4 w-4" />
             </a>
-            <a
-              href="/login"
-              className="inline-flex items-center justify-center rounded-lg border border-border bg-background px-6 py-3 hover:bg-accent transition-colors"
-            >
-              Acceso clientes
-            </a>
           </div>
         </div>
         

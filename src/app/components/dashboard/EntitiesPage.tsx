@@ -136,6 +136,9 @@ export function EntitiesPage() {
   // Estados para filtros
   const [filterType, setFilterType] = useState<string[]>([]);
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
+  
+  // Cantidad de registros a mostrar por defecto (configurable)
+  const [pageSize, setPageSize] = useState(6);
 
   // Estados para formulario de nueva entidad
   const [newEntityForm, setNewEntityForm] = useState({
@@ -230,8 +233,9 @@ export function EntitiesPage() {
       entities = entities.filter(entity => filterStatus.includes(entity.status));
     }
 
-    return entities;
-  }, [sortedEntities, searchTerm, filterType, filterStatus]);
+    // Limitar a pageSize registros
+    return entities.slice(0, pageSize);
+  }, [sortedEntities, searchTerm, filterType, filterStatus, pageSize]);
 
   const suggestions = useMemo(() => {
     const allSuggestions = [
@@ -391,113 +395,81 @@ export function EntitiesPage() {
           )}
         </div>
 
-        {/* Botones a la derecha */}
+        {/* Botones a la derecha - Orden: Nuevo, Editar, Importar, Exportar, Imprimir, Vista */}
         <div className="flex items-center gap-4 ml-auto">
-          {/* Botón Nuevo */}
+          {/* 1. Botón Nuevo */}
           <button 
             onClick={handleNewEntity}
-            className="flex items-center gap-2 px-4 py-2 text-white hover:bg-white/10 rounded-lg transition-colors"
+            className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors"
           >
             <Plus className="h-4 w-4" />
             <span className="text-sm font-medium">Nuevo</span>
           </button>
 
-          {/* Botón Editar */}
+          {/* 2. Botón Editar */}
           <button 
             onClick={handleEditEntity}
             disabled={!selectedEntity}
-            className="flex items-center gap-2 px-4 py-2 text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Edit className="h-4 w-4" />
             <span className="text-sm font-medium">Editar</span>
           </button>
 
-          {/* Botón Filtros */}
-          <div className="relative" ref={filtersRef}>
+          {/* 3. Botón Importar */}
+          <button className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors">
+            <Download className="h-4 w-4 rotate-180" />
+            <span className="text-sm font-medium">Importar</span>
+          </button>
+
+          {/* 4. Botón Exportar */}
+          <div className="relative" ref={exportMenuRef}>
             <button 
-              onClick={() => setShowFiltersPanel(!showFiltersPanel)}
-              className="flex items-center gap-2 px-4 py-2 text-white hover:bg-white/10 rounded-lg transition-colors"
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors"
             >
-              <Filter className="h-4 w-4" />
-              <span className="text-sm font-medium">Filtros</span>
-              {(filterType.length > 0 || filterStatus.length > 0) && (
-                <span className="ml-1 px-2 py-0.5 bg-white text-[#FF6B35] rounded-full text-xs font-bold">
-                  {filterType.length + filterStatus.length}
-                </span>
-              )}
+              <Download className="h-4 w-4" />
+              <span className="text-sm font-medium">Exportar</span>
             </button>
 
-            {/* Panel de Filtros */}
-            {showFiltersPanel && (
-              <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-lg border z-30">
-                <div className="p-4 border-b">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-gray-900">Filtros</h3>
-                    <button onClick={() => setShowFiltersPanel(false)}>
-                      <X className="h-4 w-4 text-gray-500" />
-                    </button>
-                  </div>
-
-                  {/* Filtro por Tipo */}
-                  <div className="mb-4">
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Tipo</label>
-                    <div className="space-y-2">
-                      {TIPOS_ENTIDAD.map(type => (
-                        <label key={type} className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={filterType.includes(type)}
-                            onChange={() => handleToggleFilterType(type)}
-                            className="rounded border-gray-300"
-                          />
-                          <span className="text-sm text-gray-700">{type}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Filtro por Estado */}
-                  <div className="mb-4">
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Estado</label>
-                    <div className="space-y-2">
-                      {ESTADOS_REGISTRO.map(status => (
-                        <label key={status} className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={filterStatus.includes(status)}
-                            onChange={() => handleToggleFilterStatus(status)}
-                            className="rounded border-gray-300"
-                          />
-                          <span className="text-sm text-gray-700">{status}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 pt-4 border-t">
-                    <button
-                      onClick={handleApplyFilters}
-                      className="flex-1 px-4 py-2 bg-[#00A9CE] text-white rounded-lg hover:opacity-90 transition-opacity text-sm font-medium"
-                    >
-                      Aplicar
-                    </button>
-                    <button
-                      onClick={handleClearFilters}
-                      className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors text-sm"
-                    >
-                      Limpiar
-                    </button>
-                  </div>
+            {/* Menú de Exportar */}
+            {showExportMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-30">
+                <div className="py-2">
+                  <button
+                    onClick={() => handleExport('CSV')}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors text-sm"
+                  >
+                    Exportar CSV
+                  </button>
+                  <button
+                    onClick={() => handleExport('Excel')}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors text-sm"
+                  >
+                    Exportar Excel
+                  </button>
+                  <button
+                    onClick={() => handleExport('PDF')}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors text-sm"
+                  >
+                    Exportar PDF
+                  </button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Botón Vista */}
+          {/* 5. Botón Imprimir */}
+          <button className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors">
+            <Printer className="h-4 w-4" />
+            <span className="text-sm font-medium">Imprimir</span>
+          </button>
+
+          {/* 6. Botón Vista */}
           <div className="relative" ref={columnsMenuRef}>
             <button 
               onClick={() => setShowColumnsMenu(!showColumnsMenu)}
-              className="flex items-center gap-2 px-4 py-2 text-white hover:bg-white/10 rounded-lg transition-colors"
+              className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors"
             >
               <Eye className="h-4 w-4" />
               <span className="text-sm font-medium">Vista</span>
@@ -533,43 +505,6 @@ export function EntitiesPage() {
                       </label>
                     ))}
                   </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Botón Exportar */}
-          <div className="relative" ref={exportMenuRef}>
-            <button 
-              onClick={() => setShowExportMenu(!showExportMenu)}
-              className="flex items-center gap-2 px-4 py-2 text-white hover:bg-white/10 rounded-lg transition-colors"
-            >
-              <Download className="h-4 w-4" />
-              <span className="text-sm font-medium">Exportar</span>
-            </button>
-
-            {/* Menú de Exportar */}
-            {showExportMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-30">
-                <div className="py-2">
-                  <button
-                    onClick={() => handleExport('CSV')}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors text-sm"
-                  >
-                    Exportar CSV
-                  </button>
-                  <button
-                    onClick={() => handleExport('Excel')}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors text-sm"
-                  >
-                    Exportar Excel
-                  </button>
-                  <button
-                    onClick={() => handleExport('PDF')}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors text-sm"
-                  >
-                    Exportar PDF
-                  </button>
                 </div>
               </div>
             )}

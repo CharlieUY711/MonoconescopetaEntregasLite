@@ -41,33 +41,29 @@ export const TIPOS_ENTIDAD_FUTURO = [
 
 /**
  * Roles de Persona V1
- * - Remitente: Persona que entrega u origina el envío
- * - Destinatario: Persona que recibe el envío (puede confirmar recepción)
- * - Receptor: Persona que recibe (no necesariamente el destinatario nominal)
- * - Usuario: Persona que opera el sistema (crea pedidos, consulta estados)
- * - Administrador: Persona con control total del sistema
- * - Contacto: Persona de referencia dentro de una entidad
+ * IMPORTANTE: Jamás usar "Cliente" como rol de persona.
+ * 
+ * - Remitente: Persona que entrega u origina el envío. Punto de contacto en el retiro
+ * - Destinatario: Persona que recibe el envío. Puede confirmar recepción
+ * - Receptor: Persona que recibe. No necesariamente el destinatario nominal
+ * - Chofer: Persona que transporta el envío. Futuro: Asociada a vehículo y ruta
+ * - Usuario: Persona que opera el sistema. Crea pedidos, consulta estados
+ * - Operador: Persona con funciones operativas ampliadas. Coordina entregas, asigna choferes
+ * - Administrador: Persona con control total del sistema. Configuración, usuarios, entidades
+ * - Contacto: Persona de referencia dentro de una entidad. No interactúa directamente con el sistema
  */
 export const ROLES_PERSONA = [
   'Remitente',
   'Destinatario',
   'Receptor',
+  'Chofer',
   'Usuario',
+  'Operador',
   'Administrador',
   'Contacto'
 ] as const;
 
 export type RolPersona = typeof ROLES_PERSONA[number];
-
-/**
- * FUTURO (NO implementar lógica avanzada en V1):
- * - Chofer: Persona que transporta el envío (asociada a vehículo y ruta)
- * - Operador: Persona con funciones operativas ampliadas
- */
-export const ROLES_PERSONA_FUTURO = [
-  'Chofer',
-  'Operador'
-] as const;
 
 // ============================================
 // ESTADOS DE PEDIDO/ENTREGA
@@ -109,10 +105,14 @@ export type EstadoRegistro = typeof ESTADOS_REGISTRO[number];
  * - Chofer: Vista operativa básica (mock)
  * - Cliente: Solo lectura + validación (acuse de recibo)
  */
+/**
+ * Roles de acceso al sistema (para el switcher de desarrollo)
+ * IMPORTANTE: "Cliente" NO es un rol válido - usar "Usuario" en su lugar
+ */
 export const ROLES_SISTEMA = [
   'Administrador',
-  'Chofer',
-  'Cliente'
+  'Operador',
+  'Usuario'
 ] as const;
 
 export type RolSistema = typeof ROLES_SISTEMA[number];
@@ -146,7 +146,9 @@ export const COLORES_ROL_PERSONA: Record<RolPersona, string> = {
   'Remitente': 'text-blue-600',
   'Destinatario': 'text-purple-600',
   'Receptor': 'text-indigo-600',
+  'Chofer': 'text-amber-600',
   'Usuario': 'text-teal-600',
+  'Operador': 'text-cyan-600',
   'Administrador': 'text-orange-600',
   'Contacto': 'text-green-600'
 };

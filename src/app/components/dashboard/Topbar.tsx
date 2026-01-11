@@ -35,8 +35,8 @@ export function Topbar({ userRole, userName }: TopbarProps) {
   const getRoleColor = (role: RolSistema) => {
     switch (role) {
       case 'Administrador': return 'bg-orange-500';
-      case 'Chofer': return 'bg-blue-500';
-      case 'Cliente': return 'bg-green-500';
+      case 'Operador': return 'bg-cyan-500';
+      case 'Usuario': return 'bg-teal-500';
       default: return 'bg-gray-500';
     }
   };

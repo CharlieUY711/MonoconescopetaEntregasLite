@@ -68,13 +68,14 @@ export function useRole(): [RolSistema, (role: RolSistema) => void] {
 
 /**
  * Helpers para verificar permisos según rol
+ * NOTA: "Cliente" NO es un rol válido - usar "Usuario" en su lugar
  */
 export function canManageEntregas(role: RolSistema): boolean {
-  return role === 'Administrador' || role === 'Chofer';
+  return role === 'Administrador' || role === 'Operador';
 }
 
 export function canAccessDatabase(role: RolSistema): boolean {
-  return role === 'Administrador';
+  return role === 'Administrador' || role === 'Operador';
 }
 
 export function canAccessConfig(role: RolSistema): boolean {
@@ -82,9 +83,11 @@ export function canAccessConfig(role: RolSistema): boolean {
 }
 
 export function canConfirmReceipt(role: RolSistema): boolean {
-  return role === 'Cliente';
+  // Usuario puede confirmar recepción (es el destinatario)
+  return role === 'Usuario';
 }
 
 export function isClientRole(role: RolSistema): boolean {
-  return role === 'Cliente';
+  // "Usuario" es quien recibe entregas (antes era "Cliente")
+  return role === 'Usuario';
 }

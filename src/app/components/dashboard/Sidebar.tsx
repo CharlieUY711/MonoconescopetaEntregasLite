@@ -1,8 +1,11 @@
 import { Home, Settings, LogOut, Database, ChevronDown, ChevronRight, User, Package } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import logoOddy from '../../../assets/70a0244bfc2c569920c790f10f4bb1381608d99c.png';
 import { useRole, canAccessDatabase, canAccessConfig } from '../../state/role';
+import { useAuth } from '../../contexts/AuthContext';
+import { signOut } from 'firebase/auth';
+import { auth } from '../../../lib/firebase';
 
 const menuItems = [
   { icon: Home, label: 'Inicio', path: '/dashboard' },
@@ -21,7 +24,10 @@ const configuracionSubmenu = [
 
 export function Sidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [currentRole] = useRole();
+  const { user, profile } = useAuth();
+  
   const [isDatabaseOpen, setIsDatabaseOpen] = useState(
     location.pathname.startsWith('/dashboard/base-datos')
   );
@@ -29,25 +35,53 @@ export function Sidebar() {
     location.pathname.startsWith('/dashboard/configuracion')
   );
 
-  // Permisos según rol
-  const showDatabase = canAccessDatabase(currentRole);
-  const showConfig = canAccessConfig(currentRole);
+  // Usar perfil de Firebase si está disponible, sino el role switcher
+  const isAuthenticated = Boolean(user && profile);
+  const effectiveRole = isAuthenticated 
+    ? (profile?.role === 'admin' ? 'Administrador' : profile?.role === 'client' ? 'Cliente' : 'Chofer')
+    : currentRole;
 
-  // Obtener nombre y rol para mostrar según el rol del sistema
+  // Mostrar todos los menús para todos los usuarios
+  const showDatabase = true;
+  const showConfig = true;
+
+  // Obtener nombre y rol para mostrar
   const getUserDisplayInfo = () => {
+    // Si hay usuario autenticado, usar datos de Firebase
+    if (isAuthenticated && user) {
+      // Mapear roles de Firebase a roles del sistema (nunca usar "Cliente")
+      const roleLabel = profile?.role === 'admin' ? 'Administrador' : 
+                        profile?.role === 'client' ? 'Usuario' : 
+                        profile?.role === 'driver_mock' ? 'Operador' : 'Usuario';
+      return { 
+        name: profile?.displayName || user.displayName || user.email?.split('@')[0] || 'Usuario', 
+        role: roleLabel 
+      };
+    }
+    
+    // Fallback al role switcher (modo desarrollo)
     switch (currentRole) {
       case 'Administrador':
         return { name: 'Juan de los Palotes', role: 'Administrador, Oddy' };
-      case 'Chofer':
-        return { name: 'Carlos Méndez', role: 'Chofer, Oddy' };
-      case 'Cliente':
-        return { name: 'Almacenes del Sur', role: 'Cliente' };
+      case 'Operador':
+        return { name: 'Carlos Méndez', role: 'Operador, Oddy' };
+      case 'Usuario':
+        return { name: 'Almacenes del Sur', role: 'Usuario' };
       default:
         return { name: 'Usuario', role: 'Usuario' };
     }
   };
 
   const userInfo = getUserDisplayInfo();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      navigate('/');
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+    }
+  };
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-[#00A9CE] flex flex-col">
@@ -180,7 +214,10 @@ export function Sidebar() {
       </nav>
 
       <div className="p-4">
-        <button className="flex items-center gap-3 w-full px-4 py-3 text-white/90 hover:bg-white/10 rounded-lg transition-colors">
+        <button 
+          onClick={handleSignOut}
+          className="flex items-center gap-3 w-full px-4 py-3 text-white/90 hover:bg-white/10 rounded-lg transition-colors"
+        >
           <LogOut className="h-5 w-5" />
           <span className="text-sm">Cerrar sesión</span>
         </button>

@@ -158,6 +158,9 @@ export function PeoplePage() {
   // Estados para filtros
   const [filterRole, setFilterRole] = useState<string[]>([]);
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
+  
+  // Cantidad de registros a mostrar por defecto (configurable)
+  const [pageSize, setPageSize] = useState(6);
 
   // Estados para formulario de nueva persona
   const [newPersonForm, setNewPersonForm] = useState({
@@ -255,8 +258,9 @@ export function PeoplePage() {
       people = people.filter(person => filterStatus.includes(person.status));
     }
 
-    return people;
-  }, [sortedPeople, searchTerm, filterRole, filterStatus]);
+    // Limitar a pageSize registros
+    return people.slice(0, pageSize);
+  }, [sortedPeople, searchTerm, filterRole, filterStatus, pageSize]);
 
   const suggestions = useMemo(() => {
     const allSuggestions = [
@@ -420,9 +424,9 @@ export function PeoplePage() {
           )}
         </div>
 
-        {/* Botones a la derecha */}
+        {/* Botones a la derecha - Orden: Nuevo, Editar, Importar, Exportar, Imprimir, Vista */}
         <div className="flex items-center gap-4 ml-auto">
-          {/* Botón Nuevo */}
+          {/* 1. Botón Nuevo */}
           <button 
             onClick={handleNewPerson}
             className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors"
@@ -431,7 +435,7 @@ export function PeoplePage() {
             <span className="text-sm font-medium">Nuevo</span>
           </button>
 
-          {/* Botón Editar */}
+          {/* 2. Botón Editar */}
           <button 
             onClick={handleEditPerson}
             disabled={!selectedPerson}
@@ -441,88 +445,56 @@ export function PeoplePage() {
             <span className="text-sm font-medium">Editar</span>
           </button>
 
-          {/* Botón Filtros */}
-          <div className="relative" ref={filtersRef}>
+          {/* 3. Botón Importar */}
+          <button className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors">
+            <Download className="h-4 w-4 rotate-180" />
+            <span className="text-sm font-medium">Importar</span>
+          </button>
+
+          {/* 4. Botón Exportar */}
+          <div className="relative" ref={exportMenuRef}>
             <button 
-              onClick={() => setShowFiltersPanel(!showFiltersPanel)}
+              onClick={() => setShowExportMenu(!showExportMenu)}
               className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors"
             >
-              <Filter className="h-4 w-4" />
-              <span className="text-sm font-medium">Filtros</span>
-              {(filterRole.length > 0 || filterStatus.length > 0) && (
-                <span className="ml-1 px-2 py-0.5 bg-white text-[#FF6B35] rounded-full text-xs font-bold">
-                  {filterRole.length + filterStatus.length}
-                </span>
-              )}
+              <Download className="h-4 w-4" />
+              <span className="text-sm font-medium">Exportar</span>
             </button>
 
-            {/* Panel de Filtros */}
-            {showFiltersPanel && (
-              <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-lg border z-30">
-                <div className="p-4 border-b">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-gray-900">Filtros</h3>
-                    <button onClick={() => setShowFiltersPanel(false)}>
-                      <X className="h-4 w-4 text-gray-500" />
-                    </button>
-                  </div>
-
-                  {/* Filtro por Rol */}
-                  <div className="mb-4">
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Rol</label>
-                    <div className="space-y-2">
-                      {ROLES_PERSONA.map(role => (
-                        <label key={role} className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={filterRole.includes(role)}
-                            onChange={() => handleToggleFilterRole(role)}
-                            className="rounded border-gray-300"
-                          />
-                          <span className="text-sm text-gray-700">{role}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Filtro por Estado */}
-                  <div className="mb-4">
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Estado</label>
-                    <div className="space-y-2">
-                      {ESTADOS_REGISTRO.map(status => (
-                        <label key={status} className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={filterStatus.includes(status)}
-                            onChange={() => handleToggleFilterStatus(status)}
-                            className="rounded border-gray-300"
-                          />
-                          <span className="text-sm text-gray-700">{status}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 pt-4 border-t">
-                    <button
-                      onClick={handleApplyFilters}
-                      className="flex-1 h-[35px] px-4 bg-[#00A9CE] text-white rounded-lg hover:opacity-90 transition-opacity text-sm font-medium"
-                    >
-                      Aplicar
-                    </button>
-                    <button
-                      onClick={handleClearFilters}
-                      className="h-[35px] px-4 border rounded-lg hover:bg-gray-50 transition-colors text-sm"
-                    >
-                      Limpiar
-                    </button>
-                  </div>
+            {/* Menú de Exportar */}
+            {showExportMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-30">
+                <div className="py-2">
+                  <button
+                    onClick={() => handleExport('CSV')}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors text-sm"
+                  >
+                    Exportar CSV
+                  </button>
+                  <button
+                    onClick={() => handleExport('Excel')}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors text-sm"
+                  >
+                    Exportar Excel
+                  </button>
+                  <button
+                    onClick={() => handleExport('PDF')}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors text-sm"
+                  >
+                    Exportar PDF
+                  </button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Botón Vista */}
+          {/* 5. Botón Imprimir */}
+          <button className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors">
+            <Printer className="h-4 w-4" />
+            <span className="text-sm font-medium">Imprimir</span>
+          </button>
+
+          {/* 6. Botón Vista */}
           <div className="relative" ref={columnsMenuRef}>
             <button 
               onClick={() => setShowColumnsMenu(!showColumnsMenu)}
@@ -563,43 +535,6 @@ export function PeoplePage() {
                       </label>
                     ))}
                   </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Botón Exportar */}
-          <div className="relative" ref={exportMenuRef}>
-            <button 
-              onClick={() => setShowExportMenu(!showExportMenu)}
-              className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors"
-            >
-              <Download className="h-4 w-4" />
-              <span className="text-sm font-medium">Exportar</span>
-            </button>
-
-            {/* Menú de Exportar */}
-            {showExportMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-30">
-                <div className="py-2">
-                  <button
-                    onClick={() => handleExport('CSV')}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors text-sm"
-                  >
-                    Exportar CSV
-                  </button>
-                  <button
-                    onClick={() => handleExport('Excel')}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors text-sm"
-                  >
-                    Exportar Excel
-                  </button>
-                  <button
-                    onClick={() => handleExport('PDF')}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors text-sm"
-                  >
-                    Exportar PDF
-                  </button>
                 </div>
               </div>
             )}

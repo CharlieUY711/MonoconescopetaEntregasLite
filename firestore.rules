@@ -1,0 +1,231 @@
+rules_version = '2';
+
+/**
+ * FIRESTORE SECURITY RULES - ODDY Entregas Lite V1
+ * 
+ * Principio: FAIL CLOSED (denegar por defecto)
+ * 
+ * Colecciones:
+ * - users/{uid}: Perfil de usuario
+ * - deliveries/{deliveryId}: Entregas
+ * - deliveries/{deliveryId}/events/{eventId}: Historial de eventos
+ * - client_accounts/{emailNormalized}: Cuentas de clientes (solo Cloud Functions)
+ * - client_profiles/{uid}: Perfiles de clientes
+ * - email_verifications/{emailNormalized}: Códigos de verificación (solo Cloud Functions)
+ * - mail/{docId}: Cola de emails para extensión Trigger Email (solo Cloud Functions)
+ */
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ========================================
+    // FUNCIONES HELPER
+    // ========================================
+    
+    // Verifica si el usuario está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Verifica si existe el documento del usuario
+    function userExists() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+    
+    // Obtiene el documento del usuario actual (solo si existe)
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    // Verifica si el usuario tiene rol admin
+    function isAdmin() {
+      return isAuthenticated() && userExists() && getUserData().role == 'admin';
+    }
+    
+    // Verifica si el usuario tiene rol client
+    function isClient() {
+      return isAuthenticated() && userExists() && getUserData().role == 'client';
+    }
+    
+    // Obtiene el clientId del usuario actual
+    function getUserClientId() {
+      return getUserData().clientId;
+    }
+    
+    // ========================================
+    // USERS COLLECTION
+    // ========================================
+    
+    match /users/{userId} {
+      // Un usuario puede leer su propio documento
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Admin puede leer todos los usuarios
+      allow read: if isAdmin();
+      
+      // Un usuario puede CREAR su propio documento (primer login)
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Un usuario puede actualizar su propio documento
+      // PERO no puede cambiar su rol o clientId
+      allow update: if isAuthenticated() 
+        && request.auth.uid == userId
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'clientId']));
+      
+      // Admin puede actualizar cualquier usuario
+      allow update: if isAdmin();
+      
+      // Nadie puede eliminar usuarios
+      allow delete: if false;
+    }
+    
+    // ========================================
+    // CLIENT_ACCOUNTS COLLECTION
+    // Solo lectura/escritura por Cloud Functions (Admin SDK)
+    // ========================================
+    
+    match /client_accounts/{emailNormalized} {
+      // Los clientes pueden leer su propia cuenta (para verificar estado)
+      allow read: if isAuthenticated() && 
+        resource.data.uid == request.auth.uid;
+      
+      // Solo Cloud Functions pueden escribir (usan Admin SDK, no pasan por reglas)
+      allow write: if false;
+    }
+    
+    // ========================================
+    // CLIENT_PROFILES COLLECTION
+    // ========================================
+    
+    match /client_profiles/{uid} {
+      // Un usuario puede leer/escribir su propio perfil
+      allow read: if isAuthenticated() && request.auth.uid == uid;
+      
+      // Admin puede leer todos los perfiles
+      allow read: if isAdmin();
+      
+      // Un usuario puede actualizar su propio perfil
+      allow update: if isAuthenticated() && request.auth.uid == uid;
+      
+      // Crear solo por Cloud Functions (Admin SDK)
+      allow create: if false;
+      
+      // Nadie puede eliminar perfiles
+      allow delete: if false;
+    }
+    
+    // ========================================
+    // EMAIL_VERIFICATIONS COLLECTION
+    // Solo Cloud Functions (Admin SDK)
+    // ========================================
+    
+    match /email_verifications/{emailNormalized} {
+      allow read, write: if false;
+    }
+    
+    // ========================================
+    // MAIL COLLECTION (Trigger Email Extension)
+    // Solo Cloud Functions (Admin SDK)
+    // ========================================
+    
+    match /mail/{docId} {
+      allow read, write: if false;
+    }
+    
+    // ========================================
+    // DELIVERIES COLLECTION
+    // ========================================
+    
+    match /deliveries/{deliveryId} {
+      // LECTURA:
+      // - Admin puede leer todo
+      // - Cliente puede leer sus deliveries (donde clientId coincide)
+      // - Usuario autenticado sin perfil puede leer (fallback para carga inicial)
+      allow read: if isAuthenticated() && (
+        !userExists() ||
+        isAdmin() || 
+        (isClient() && resource.data.clientId == getUserClientId())
+      );
+      
+      // CREACIÓN: Solo admin
+      allow create: if isAdmin();
+      
+      // ACTUALIZACIÓN: Solo admin
+      allow update: if isAdmin();
+      
+      // ELIMINACIÓN: Nadie
+      allow delete: if false;
+      
+      // ========================================
+      // EVENTS SUBCOLLECTION
+      // ========================================
+      
+      match /events/{eventId} {
+        // LECTURA: Admin o cliente dueño del delivery
+        allow read: if isAuthenticated() && (
+          !userExists() ||
+          isAdmin() || 
+          (isClient() && get(/databases/$(database)/documents/deliveries/$(deliveryId)).data.clientId == getUserClientId())
+        );
+        
+        // CREACIÓN: Solo admin (Cloud Function usa Admin SDK)
+        allow create: if isAdmin();
+        
+        // Inmutables
+        allow update, delete: if false;
+      }
+    }
+    
+    // ========================================
+    // CLIENT ACCOUNTS (solo Cloud Functions)
+    // ========================================
+    
+    match /client_accounts/{emailId} {
+      // Solo Cloud Functions (Admin SDK) pueden leer/escribir
+      // Las funciones checkEmailExists, finalizeRegistration, etc. usan Admin SDK
+      allow read, write: if false;
+    }
+    
+    // ========================================
+    // CLIENT PROFILES
+    // ========================================
+    
+    match /client_profiles/{uid} {
+      // Usuario puede leer/actualizar su propio perfil
+      allow read, update: if isAuthenticated() && request.auth.uid == uid;
+      
+      // Solo Cloud Functions pueden crear (al registrar)
+      allow create: if false;
+      
+      // Nadie puede eliminar
+      allow delete: if false;
+    }
+    
+    // ========================================
+    // EMAIL VERIFICATIONS (solo Cloud Functions)
+    // ========================================
+    
+    match /email_verifications/{emailId} {
+      // Solo Cloud Functions (Admin SDK) pueden acceder
+      allow read, write: if false;
+    }
+    
+    // ========================================
+    // MAIL (para Firebase Trigger Email Extension)
+    // ========================================
+    
+    match /mail/{mailId} {
+      // Solo Cloud Functions (Admin SDK) pueden escribir
+      // La extensión de email usa Admin SDK para leer
+      allow read, write: if false;
+    }
+    
+    // ========================================
+    // DENEGAR TODO LO DEMÁS
+    // ========================================
+    
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

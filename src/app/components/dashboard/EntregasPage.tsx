@@ -1,19 +1,31 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
-import { Package, FileText, MapPin, User, ChevronUp, ChevronDown, Search, Plus, Edit, Filter, Download, Eye, X, Save, Check, Printer, Truck, Clock, CheckCircle2, History } from 'lucide-react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { Package, FileText, MapPin, User, ChevronUp, ChevronDown, Search, Plus, Edit, Download, Eye, Save, Printer, Truck, Clock, CheckCircle2, History, Loader2 } from 'lucide-react';
 import { EntregasKPICards } from './EntregasKPICards';
 import { 
   ESTADOS_ENTREGA, 
-  getColorEstadoEntrega,
-  type EstadoEntrega
+  getColorEstadoEntrega
 } from '../../data/catalogos';
 import { useRole, canManageEntregas, isClientRole, MOCK_CLIENT_ID } from '../../state/role';
 import { 
   mockEntregasData, 
-  type Entrega, 
-  addHistoryEvent, 
+  type Entrega,
   formatTimestamp,
   getEventTypeLabel 
 } from '../../data/entregas';
+import { useAuth } from '../../contexts/AuthContext';
+import { 
+  subscribeDeliveriesForUser,
+  subscribeDeliveryEvents,
+  updateDeliveryAsAdmin,
+  createDelivery,
+  confirmReceipt as confirmReceiptService,
+  canUserConfirmReceipt,
+  canUserEditDeliveries,
+  canUserCreateDeliveries,
+  type CreateDeliveryData,
+  type UpdateDeliveryData
+} from '../../services/deliveriesService';
+import type { HistoryEvent } from '../../data/entregas';
 
 type SortColumn = keyof Entrega | null;
 type SortDirection = 'asc' | 'desc';
@@ -28,17 +40,50 @@ interface ColumnVisibility {
 }
 
 export function EntregasPage() {
-  // Estado de rol
-  const [currentRole] = useRole();
-  const showManageActions = canManageEntregas(currentRole);
-  const isClient = isClientRole(currentRole);
+  console.log('[EntregasPage] Renderizando...');
+  
+  // Auth context - si hay usuario autenticado, usa Firestore
+  const { user, profile, loading: authLoading } = useAuth();
+  
+  console.log('[EntregasPage] Auth state:', { 
+    hasUser: !!user, 
+    hasProfile: !!profile, 
+    authLoading,
+    profileRole: profile?.role 
+  });
+  
+  // Solo usar Firestore si tenemos usuario Y perfil válido
+  const useFirestore = Boolean(user && profile && profile.uid);
 
-  // Estado de entregas (mutable para simular cambios)
-  const [entregas, setEntregas] = useState<Entrega[]>(mockEntregasData);
+  // Estado de rol (del Role Switcher para desarrollo)
+  const [currentRole] = useRole();
+  
+  // Mostrar todas las opciones del menú para todos los usuarios
+  const showManageActions = true;
+  const canCreate = true;
+  const isClient = useFirestore && profile
+    ? profile.role === 'client' 
+    : isClientRole(currentRole);
+
+  // Estado de entregas
+  const [entregas, setEntregas] = useState<Entrega[]>([]);
+  const [firestoreLoading, setFirestoreLoading] = useState(true);
+  const [firestoreError, setFirestoreError] = useState<string | null>(null);
+  
+  // Estado de selección - usar ID en lugar de objeto completo (fuente única)
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  
+  // Derivar selectedEntrega desde entregas[] (fuente única de verdad)
+  const selectedEntrega = useMemo(() => {
+    if (!selectedId) return null;
+    return entregas.find(e => e.id === selectedId) || null;
+  }, [selectedId, entregas]);
+
+  // Estado del historial de la entrega seleccionada
+  const [selectedHistory, setSelectedHistory] = useState<HistoryEvent[]>([]);
   
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-  const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
   const [detailView, setDetailView] = useState<'entrega' | 'envio'>('entrega');
   const [searchTerm, setSearchTerm] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -57,6 +102,8 @@ export function EntregasPage() {
   const [showFiltersPanel, setShowFiltersPanel] = useState(false);
   const [showColumnsMenu, setShowColumnsMenu] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [savingData, setSavingData] = useState(false);
+  const [confirmingReceipt, setConfirmingReceipt] = useState(false);
 
   // Estados para filtros
   const [filterEstado, setFilterEstado] = useState<string[]>([]);
@@ -81,6 +128,85 @@ export function EntregasPage() {
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const filtersRef = useRef<HTMLDivElement>(null);
 
+  // ============================================
+  // SUSCRIPCIÓN A FIRESTORE (con fallback a mock data)
+  // ============================================
+
+  // Función helper para obtener datos mock - mostrar todos para demo
+  const getMockDataForRole = useCallback(() => {
+    // Mostrar todos los registros (demo) - ordenados por fecha desc, últimos 6
+    return [...mockEntregasData]
+      .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+      .slice(0, 6);
+  }, []);
+
+  useEffect(() => {
+    // Si no hay usuario autenticado, usar mock data directamente
+    if (!useFirestore) {
+      setFirestoreLoading(false);
+      setEntregas(getMockDataForRole());
+      return;
+    }
+
+    // Suscribirse a Firestore (solo si tenemos profile)
+    if (!profile) {
+      setFirestoreLoading(false);
+      return;
+    }
+    
+    setFirestoreLoading(true);
+    setFirestoreError(null);
+
+    const unsubscribe = subscribeDeliveriesForUser(
+      profile,
+      (deliveries) => {
+        // FALLBACK: Si Firestore está vacío, usar datos mock de demostración
+        if (deliveries.length === 0) {
+          console.log('[EntregasPage] Firestore vacío, usando datos de demostración');
+          setEntregas(getMockDataForRole());
+        } else {
+          setEntregas(deliveries);
+        }
+        setFirestoreLoading(false);
+      },
+      (error) => {
+        console.error('[EntregasPage] Error Firestore:', error);
+        // En caso de error, también usar mock data
+        setEntregas(getMockDataForRole());
+        setFirestoreError('Usando datos de demostración');
+        setFirestoreLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [useFirestore, profile, currentRole, getMockDataForRole]);
+
+  // Suscripción a eventos de la entrega seleccionada
+  useEffect(() => {
+    if (!useFirestore || !selectedId) {
+      // Sin Firestore: usar history del mock
+      if (selectedEntrega?.history) {
+        setSelectedHistory(selectedEntrega.history);
+      } else {
+        setSelectedHistory([]);
+      }
+      return;
+    }
+
+    // Suscribirse a eventos desde Firestore
+    const unsubscribe = subscribeDeliveryEvents(
+      selectedId,
+      (events) => {
+        setSelectedHistory(events);
+      },
+      (error) => {
+        console.error('[EntregasPage] Error cargando eventos:', error);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [useFirestore, selectedId, selectedEntrega?.history]);
+
   // Cerrar menús al hacer clic fuera
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -99,29 +225,25 @@ export function EntregasPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Filtrar entregas según rol (Cliente solo ve sus entregas)
-  const visibleEntregas = useMemo(() => {
-    if (isClient) {
-      return entregas.filter(e => e.ownerId === MOCK_CLIENT_ID);
-    }
-    return entregas;
-  }, [entregas, isClient]);
-
-  // Seleccionar primera entrega visible al cambiar de rol
+  // Seleccionar primera entrega visible cuando cambian las entregas
   useEffect(() => {
-    if (visibleEntregas.length > 0 && (!selectedEntrega || !visibleEntregas.find(e => e.id === selectedEntrega.id))) {
-      setSelectedEntrega(visibleEntregas[0]);
+    if (entregas.length > 0 && (!selectedId || !entregas.find(e => e.id === selectedId))) {
+      setSelectedId(entregas[0].id);
     }
-  }, [visibleEntregas, selectedEntrega]);
+  }, [entregas, selectedId]);
+
+  // ============================================
+  // DATOS Y FILTROS
+  // ============================================
 
   // Datos para autocompletado
   const allSearchableData = useMemo(() => {
     const data: string[] = [];
-    visibleEntregas.forEach(entrega => {
+    entregas.forEach(entrega => {
       data.push(entrega.id, entrega.remitente, entrega.destinatario, entrega.direccion, entrega.estado);
     });
     return [...new Set(data)];
-  }, [visibleEntregas]);
+  }, [entregas]);
 
   const filteredSuggestions = searchTerm
     ? allSearchableData.filter(item =>
@@ -131,7 +253,7 @@ export function EntregasPage() {
 
   // Ordenamiento de entregas
   const sortedEntregas = useMemo(() => {
-    let filtered = [...visibleEntregas];
+    let filtered = [...entregas];
 
     // Aplicar filtros
     if (filterEstado.length > 0) {
@@ -162,7 +284,11 @@ export function EntregasPage() {
     }
 
     return filtered.slice(0, 7); // Últimas 7 entregas
-  }, [visibleEntregas, sortColumn, sortDirection, searchTerm, filterEstado]);
+  }, [entregas, sortColumn, sortDirection, searchTerm, filterEstado]);
+
+  // ============================================
+  // HANDLERS
+  // ============================================
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -174,7 +300,7 @@ export function EntregasPage() {
   };
 
   const handleRowClick = (entrega: Entrega) => {
-    setSelectedEntrega(entrega);
+    setSelectedId(entrega.id);
     // B) EDICIÓN DIRECTA: Al hacer click en fila, entrar en modo edición automáticamente
     if (showManageActions) {
       setEditEntregaForm({ ...entrega });
@@ -204,78 +330,123 @@ export function EntregasPage() {
   const handleEditEntrega = () => {
     if (selectedEntrega) {
       setIsEditMode(true);
-      setEditEntregaForm(selectedEntrega);
+      setEditEntregaForm({ ...selectedEntrega });
       setShowNewForm(true);
     }
   };
 
-  const handleSaveEntrega = () => {
-    if (isEditMode && editEntregaForm) {
-      // A) FIX: Actualizar el array de entregas para que la tabla refleje los cambios
-      const now = new Date().toISOString();
-      const updatedEntregas = entregas.map(e => {
-        if (e.id === editEntregaForm.id) {
-          // Detectar si hubo cambio de estado
-          const estadoCambio = e.estado !== editEntregaForm.estado;
-          const newHistory = [...e.history];
+  const handleSaveEntrega = useCallback(async () => {
+    setSavingData(true);
+
+    try {
+      if (isEditMode && editEntregaForm) {
+        if (useFirestore && profile) {
+          // Guardar en Firestore
+          const updates: UpdateDeliveryData = {
+            fecha: editEntregaForm.fecha,
+            remitente: editEntregaForm.remitente,
+            destinatario: editEntregaForm.destinatario,
+            direccion: editEntregaForm.direccion,
+            estado: editEntregaForm.estado,
+            conductor: editEntregaForm.conductor,
+            vehiculo: editEntregaForm.vehiculo,
+            observaciones: editEntregaForm.observaciones
+          };
+
+          const currentStatus = selectedEntrega?.estado || editEntregaForm.estado;
           
-          if (estadoCambio) {
-            newHistory.push({
-              type: 'STATUS_CHANGE',
-              timestamp: now,
-              description: `Estado: ${e.estado} → ${editEntregaForm.estado}`
-            });
-          }
+          await updateDeliveryAsAdmin(
+            editEntregaForm.id,
+            updates,
+            currentStatus,
+            profile.uid,
+            profile.role
+          );
           
-          // Agregar evento de actualización general
-          newHistory.push({
-            type: 'UPDATED',
-            timestamp: now,
-            description: 'Registro actualizado'
+          // Los datos se actualizarán automáticamente via la suscripción
+        } else {
+          // Mock: actualizar estado local
+          const now = new Date().toISOString();
+          const updatedEntregas = entregas.map(e => {
+            if (e.id === editEntregaForm.id) {
+              const estadoCambio = e.estado !== editEntregaForm.estado;
+              const newHistory = [...e.history];
+              
+              if (estadoCambio) {
+                newHistory.push({
+                  type: 'STATUS_CHANGE',
+                  timestamp: now,
+                  description: `Estado: ${e.estado} → ${editEntregaForm.estado}`
+                });
+              }
+              
+              newHistory.push({
+                type: 'UPDATED',
+                timestamp: now,
+                description: 'Registro actualizado'
+              });
+              
+              return {
+                ...editEntregaForm,
+                history: newHistory
+              };
+            }
+            return e;
           });
           
-          return {
-            ...editEntregaForm,
-            history: newHistory
-          };
+          setEntregas(updatedEntregas);
         }
-        return e;
-      });
-      
-      setEntregas(updatedEntregas);
-      
-      // Actualizar selectedEntrega para reflejar cambios en detalle
-      const updatedSelected = updatedEntregas.find(e => e.id === editEntregaForm.id);
-      if (updatedSelected) {
-        setSelectedEntrega(updatedSelected);
+      } else if (!isEditMode) {
+        // Crear nueva entrega
+        if (useFirestore && profile) {
+          const newData: CreateDeliveryData = {
+            clientId: profile.clientId || 'admin',
+            fecha: newEntregaForm.fecha,
+            remitente: newEntregaForm.remitente,
+            destinatario: newEntregaForm.destinatario,
+            direccion: newEntregaForm.direccion,
+            estado: newEntregaForm.estado,
+            conductor: newEntregaForm.conductor || '-',
+            vehiculo: newEntregaForm.vehiculo || '-',
+            observaciones: newEntregaForm.observaciones || ''
+          };
+
+          const newId = await createDelivery(newData, profile.uid, profile.role);
+          setSelectedId(newId);
+        } else {
+          // Mock: crear localmente
+          const now = new Date().toISOString();
+          const newId = `ETG-${String(entregas.length + 1).padStart(3, '0')}`;
+          const newEntrega: Entrega = {
+            id: newId,
+            fecha: newEntregaForm.fecha,
+            remitente: newEntregaForm.remitente,
+            destinatario: newEntregaForm.destinatario,
+            direccion: newEntregaForm.direccion,
+            estado: newEntregaForm.estado,
+            conductor: newEntregaForm.conductor || '-',
+            vehiculo: newEntregaForm.vehiculo || '-',
+            observaciones: newEntregaForm.observaciones || '',
+            ownerId: 'admin',
+            history: [
+              { type: 'CREATED', timestamp: now, description: 'Entrega creada' }
+            ]
+          };
+          
+          setEntregas(prev => [newEntrega, ...prev]);
+          setSelectedId(newId);
+        }
       }
-    } else if (!isEditMode) {
-      // Crear nueva entrega
-      const now = new Date().toISOString();
-      const newId = `ETG-${String(entregas.length + 1).padStart(3, '0')}`;
-      const newEntrega: Entrega = {
-        id: newId,
-        fecha: newEntregaForm.fecha,
-        remitente: newEntregaForm.remitente,
-        destinatario: newEntregaForm.destinatario,
-        direccion: newEntregaForm.direccion,
-        estado: newEntregaForm.estado,
-        conductor: newEntregaForm.conductor || '-',
-        vehiculo: newEntregaForm.vehiculo || '-',
-        observaciones: newEntregaForm.observaciones || '',
-        ownerId: 'admin', // Por defecto, el admin crea
-        history: [
-          { type: 'CREATED', timestamp: now, description: 'Entrega creada' }
-        ]
-      };
       
-      setEntregas(prev => [newEntrega, ...prev]);
-      setSelectedEntrega(newEntrega);
+      setShowNewForm(false);
+      setIsEditMode(false);
+    } catch (error) {
+      console.error('[EntregasPage] Error guardando:', error);
+      alert('Error al guardar los cambios');
+    } finally {
+      setSavingData(false);
     }
-    
-    setShowNewForm(false);
-    setIsEditMode(false);
-  };
+  }, [isEditMode, editEntregaForm, newEntregaForm, useFirestore, profile, entregas, selectedEntrega]);
 
   const handleCancelForm = () => {
     setShowNewForm(false);
@@ -307,9 +478,22 @@ export function EntregasPage() {
     setFilterFecha([]);
   };
 
-  // Función para confirmar recepción (acuse de recibo)
-  const handleConfirmReceipt = () => {
-    if (!selectedEntrega || selectedEntrega.estado !== 'En destino' || !isClient) {
+  // ============================================
+  // ACUSE DE RECIBO
+  // ============================================
+
+  const handleConfirmReceipt = async () => {
+    if (!selectedEntrega || selectedEntrega.estado !== 'En destino') {
+      return;
+    }
+
+    // Verificar permisos
+    if (useFirestore && profile) {
+      if (!canUserConfirmReceipt(profile, selectedEntrega)) {
+        alert('No tienes permiso para confirmar esta entrega');
+        return;
+      }
+    } else if (!isClient) {
       return;
     }
 
@@ -317,47 +501,58 @@ export function EntregasPage() {
       `¿Confirmar la recepción de la entrega ${selectedEntrega.id}?\n\nEsta acción cambiará el estado a "Recibido".`
     );
 
-    if (confirmed) {
-      const now = new Date().toISOString();
-      
-      // Actualizar la entrega
-      const updatedEntregas = entregas.map(e => {
-        if (e.id === selectedEntrega.id) {
-          const updated: Entrega = {
-            ...e,
-            estado: 'Recibido',
-            acuseTimestamp: now,
-            history: [
-              ...e.history,
-              { 
-                type: 'CLIENT_CONFIRMED_RECEIPT', 
-                timestamp: now, 
-                description: 'Cliente confirmó recepción' 
-              },
-              { 
-                type: 'STATUS_CHANGE', 
-                timestamp: now, 
-                description: 'Estado: En destino → Recibido' 
-              }
-            ]
-          };
-          return updated;
-        }
-        return e;
-      });
+    if (!confirmed) return;
 
-      setEntregas(updatedEntregas);
-      
-      // Actualizar la entrega seleccionada
-      const updatedSelected = updatedEntregas.find(e => e.id === selectedEntrega.id);
-      if (updatedSelected) {
-        setSelectedEntrega(updatedSelected);
+    setConfirmingReceipt(true);
+
+    try {
+      if (useFirestore) {
+        // Usar Cloud Function
+        await confirmReceiptService(selectedEntrega.id);
+        // Los datos se actualizarán automáticamente via la suscripción
+      } else {
+        // Mock: actualizar localmente
+        const now = new Date().toISOString();
+        
+        const updatedEntregas = entregas.map(e => {
+          if (e.id === selectedEntrega.id) {
+            const updated: Entrega = {
+              ...e,
+              estado: 'Recibido',
+              acuseTimestamp: now,
+              history: [
+                ...e.history,
+                { 
+                  type: 'CLIENT_CONFIRMED_RECEIPT', 
+                  timestamp: now, 
+                  description: 'Cliente confirmó recepción' 
+                },
+                { 
+                  type: 'STATUS_CHANGE', 
+                  timestamp: now, 
+                  description: 'Estado: En destino → Recibido' 
+                }
+              ]
+            };
+            return updated;
+          }
+          return e;
+        });
+
+        setEntregas(updatedEntregas);
       }
+    } catch (error) {
+      console.error('[EntregasPage] Error confirmando recepción:', error);
+      alert('Error al confirmar la recepción. Por favor intenta de nuevo.');
+    } finally {
+      setConfirmingReceipt(false);
     }
   };
 
   // Verificar si puede mostrar botón de acuse de recibo
-  const canShowReceiptButton = isClient && selectedEntrega?.estado === 'En destino';
+  const canShowReceiptButton = useFirestore
+    ? canUserConfirmReceipt(profile, selectedEntrega)
+    : (isClient && selectedEntrega?.estado === 'En destino');
 
   const getEstadoColor = (estado: string) => {
     const colors = getColorEstadoEntrega(estado);
@@ -366,6 +561,39 @@ export function EntregasPage() {
 
   const formData = isEditMode ? editEntregaForm : newEntregaForm;
   const setFormData = isEditMode ? setEditEntregaForm : setNewEntregaForm;
+
+  // ============================================
+  // LOADING STATE
+  // ============================================
+
+  if (authLoading || firestoreLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-[#00A9CE]" />
+        <span className="ml-3 text-gray-600">Cargando entregas...</span>
+      </div>
+    );
+  }
+
+  if (firestoreError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-red-500 mb-2">{firestoreError}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="text-[#00A9CE] hover:underline"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================
+  // RENDER
+  // ============================================
 
   return (
     <div className="space-y-4">
@@ -408,67 +636,65 @@ export function EntregasPage() {
           )}
         </div>
 
-        {/* Botones a la derecha */}
+        {/* Botones a la derecha - Orden: Nuevo, Editar, Importar, Exportar, Imprimir, Vista */}
         <div className="flex items-center gap-4 ml-auto">
-          {/* Botón Nuevo - Solo para gestores (Admin/Chofer) */}
-          {showManageActions && (
-            <button
-              onClick={handleNewEntrega}
+          {/* 1. Botón Nuevo */}
+          <button
+            onClick={handleNewEntrega}
+            className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="text-sm font-medium">Nuevo</span>
+          </button>
+
+          {/* 2. Botón Editar */}
+          <button 
+            onClick={handleEditEntrega}
+            disabled={!selectedEntrega}
+            className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Edit className="h-4 w-4" />
+            <span className="text-sm font-medium">Editar</span>
+          </button>
+
+          {/* 3. Botón Importar */}
+          <button className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors">
+            <Download className="h-4 w-4 rotate-180" />
+            <span className="text-sm font-medium">Importar</span>
+          </button>
+
+          {/* 4. Botón Exportar */}
+          <div className="relative" ref={exportMenuRef}>
+            <button 
+              onClick={() => setShowExportMenu(!showExportMenu)}
               className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors"
             >
-              <Plus className="h-4 w-4" />
-              <span className="text-sm font-medium">Nueva</span>
+              <Download className="h-4 w-4" />
+              <span className="text-sm font-medium">Exportar</span>
             </button>
-          )}
 
-          {/* Botón Editar - Solo para gestores (Admin/Chofer) */}
-          {showManageActions && (
-            <button 
-              onClick={handleEditEntrega}
-              disabled={!selectedEntrega}
-              className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Edit className="h-4 w-4" />
-              <span className="text-sm font-medium">Editar</span>
-            </button>
-          )}
+            {showExportMenu && (
+              <div className="absolute right-0 top-12 w-48 bg-card border rounded-lg shadow-lg z-10 p-2">
+                <button className="w-full text-left px-4 py-2 hover:bg-muted rounded text-sm">
+                  Exportar a Excel
+                </button>
+                <button className="w-full text-left px-4 py-2 hover:bg-muted rounded text-sm">
+                  Exportar a PDF
+                </button>
+                <button className="w-full text-left px-4 py-2 hover:bg-muted rounded text-sm">
+                  Exportar a CSV
+                </button>
+              </div>
+            )}
+          </div>
 
-          {/* Botón Exportar - Solo para gestores (Admin/Chofer) */}
-          {showManageActions && (
-            <div className="relative" ref={exportMenuRef}>
-              <button 
-                onClick={() => setShowExportMenu(!showExportMenu)}
-                className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors"
-              >
-                <Download className="h-4 w-4" />
-                <span className="text-sm font-medium">Exportar</span>
-              </button>
+          {/* 5. Botón Imprimir */}
+          <button className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors">
+            <Printer className="h-4 w-4" />
+            <span className="text-sm font-medium">Imprimir</span>
+          </button>
 
-              {showExportMenu && (
-                <div className="absolute right-0 top-12 w-48 bg-card border rounded-lg shadow-lg z-10 p-2">
-                  <button className="w-full text-left px-4 py-2 hover:bg-muted rounded text-sm">
-                    Exportar a Excel
-                  </button>
-                  <button className="w-full text-left px-4 py-2 hover:bg-muted rounded text-sm">
-                    Exportar a PDF
-                  </button>
-                  <button className="w-full text-left px-4 py-2 hover:bg-muted rounded text-sm">
-                    Exportar a CSV
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Botón Imprimir - Solo para gestores (Admin/Chofer) */}
-          {showManageActions && (
-            <button className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors">
-              <Printer className="h-4 w-4" />
-              <span className="text-sm font-medium">Imprimir</span>
-            </button>
-          )}
-
-          {/* Botón Vista (Columnas) - Visible para todos */}
+          {/* 6. Botón Vista */}
           <div className="relative" ref={columnsMenuRef}>
             <button
               onClick={() => setShowColumnsMenu(!showColumnsMenu)}
@@ -648,7 +874,7 @@ export function EntregasPage() {
                   onClick={() => handleRowClick(entrega)}
                   className={`cursor-pointer hover:bg-blue-50 transition-colors ${
                     index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                  } ${selectedEntrega?.id === entrega.id ? 'bg-blue-100' : ''}`}
+                  } ${selectedId === entrega.id ? 'bg-blue-100' : ''}`}
                 >
                   <td className="px-3.5 h-[35px]">
                     <input 
@@ -719,16 +945,27 @@ export function EntregasPage() {
             <div className="flex gap-3">
               <button
                 onClick={handleCancelForm}
-                className="h-[35px] px-4 border rounded-lg hover:bg-gray-50 transition-colors flex items-center"
+                disabled={savingData}
+                className="h-[35px] px-4 border rounded-lg hover:bg-gray-50 transition-colors flex items-center disabled:opacity-50"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSaveEntrega}
-                className="h-[35px] flex items-center gap-2 px-4 bg-[#00A9CE] text-white rounded-lg hover:opacity-90 transition-opacity"
+                disabled={savingData}
+                className="h-[35px] flex items-center gap-2 px-4 bg-[#00A9CE] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
               >
-                <Save className="h-4 w-4" />
-                {isEditMode ? 'Guardar Cambios' : 'Guardar'}
+                {savingData ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    {isEditMode ? 'Guardar Cambios' : 'Guardar'}
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -906,14 +1143,24 @@ export function EntregasPage() {
                 </div>
 
                 {/* Botón Marcar como Recibido - Solo Cliente + Estado "En destino" */}
-                {canShowReceiptButton && (
+                {canShowReceiptButton && selectedEntrega && (
                   <div className="pt-4 border-t mt-4">
                     <button
                       onClick={handleConfirmReceipt}
-                      className="w-full h-[35px] flex items-center justify-center gap-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                      disabled={confirmingReceipt}
+                      className="w-full h-[35px] flex items-center justify-center gap-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
                     >
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span className="text-sm font-medium">Marcar como recibido</span>
+                      {confirmingReceipt ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span className="text-sm font-medium">Confirmando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="h-4 w-4" />
+                          <span className="text-sm font-medium">Marcar como recibido</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 )}
@@ -967,8 +1214,8 @@ export function EntregasPage() {
                   </div>
                   
                   <div className="space-y-2 max-h-[150px] overflow-y-auto">
-                    {selectedEntrega.history && selectedEntrega.history.length > 0 ? (
-                      [...selectedEntrega.history].reverse().map((event, index) => (
+                    {selectedHistory && selectedHistory.length > 0 ? (
+                      selectedHistory.map((event, index) => (
                         <div key={index} className="flex items-start gap-3 text-xs">
                           <div className="flex-shrink-0 mt-0.5">
                             <Clock className="h-3 w-3 text-gray-400" />
