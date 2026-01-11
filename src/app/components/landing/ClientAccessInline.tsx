@@ -11,6 +11,7 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { sendPasswordResetEmail } from 'firebase/auth';
 import {
   checkEmailExists,
   requestEmailCode,
@@ -25,7 +26,7 @@ import {
   type AuthStep,
   type RegistrationData,
 } from '../../services/clientAuthService';
-import { getFirebaseErrorMessage } from '../../../lib/firebase';
+import { auth, getFirebaseErrorMessage } from '../../../lib/firebase';
 
 // ============================================
 // GOOGLE ICON SVG
@@ -62,6 +63,7 @@ export function ClientAccessInline() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isPasswordError, setIsPasswordError] = useState(false);
   
   // Datos del formulario
   const [email, setEmail] = useState('');
@@ -135,12 +137,14 @@ export function ClientAccessInline() {
   const handleLogin = useCallback(async () => {
     if (!isValidPassword(password)) {
       setError('La contraseña debe tener al menos 6 caracteres');
+      setIsPasswordError(false);
       return;
     }
 
     setLoading(true);
     setError(null);
     setSuccess(null);
+    setIsPasswordError(false);
 
     try {
       await loginWithEmail(email, password);
@@ -150,10 +154,35 @@ export function ClientAccessInline() {
         navigate('/dashboard');
       }, 800);
     } catch (err) {
-      setError(getFirebaseErrorMessage(err));
+      const firebaseError = err as { code?: string };
+      // Detectar si es error de contraseña incorrecta
+      if (firebaseError.code === 'auth/wrong-password' || 
+          firebaseError.code === 'auth/invalid-credential') {
+        setError('Contraseña incorrecta, ingrésela nuevamente');
+        setIsPasswordError(true);
+      } else {
+        setError(getFirebaseErrorMessage(err));
+        setIsPasswordError(false);
+      }
       setLoading(false);
     }
   }, [email, password, navigate]);
+
+  const handleResetPassword = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    setIsPasswordError(false);
+
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setSuccess('Email enviado. Revisa tu bandeja de entrada.');
+    } catch (err) {
+      setError(getFirebaseErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }, [email]);
 
   const handleRequestCode = useCallback(async () => {
     if (!isValidPassword(password)) {
@@ -253,6 +282,7 @@ export function ClientAccessInline() {
     setStep('EMAIL_STEP');
     setError(null);
     setSuccess(null);
+    setIsPasswordError(false);
     setPassword('');
     setConfirmPassword('');
     setFirstName('');
@@ -355,16 +385,29 @@ export function ClientAccessInline() {
           )}
         </div>
 
-        {/* Campo de mensaje */}
+        {/* Campo de mensaje + botón restablecer contraseña */}
         {hasMessage && (
-          <div
-            className={`mt-2 h-[20px] flex items-center justify-center text-xs rounded border ${
-              error
-                ? 'border-red-400 text-red-500 bg-red-50/50'
-                : 'border-green-400 text-green-600 bg-green-50/50'
-            }`}
-          >
-            {error || success}
+          <div className="mt-2 flex gap-2">
+            <div
+              className={`h-[20px] flex items-center justify-center text-xs rounded border ${
+                isPasswordError ? 'flex-1' : 'w-full'
+              } ${
+                error
+                  ? 'border-red-400 text-red-500 bg-red-50/50'
+                  : 'border-green-400 text-green-600 bg-green-50/50'
+              }`}
+            >
+              {error || success}
+            </div>
+            {isPasswordError && (
+              <button
+                onClick={handleResetPassword}
+                disabled={loading}
+                className="h-[20px] px-2 text-xs font-medium rounded border border-cyan-400 bg-cyan-50 text-cyan-600 hover:bg-cyan-100 disabled:opacity-50 whitespace-nowrap"
+              >
+                Restablecer contraseña
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -374,8 +417,8 @@ export function ClientAccessInline() {
         <div className="fixed top-[97px] right-0 left-0 z-40 bg-muted/50 border-b backdrop-blur">
           <div className="container mx-auto px-6 py-3 flex justify-end">
             <div className="w-[420px] p-3 bg-card border border-cyan-300/30 rounded-lg shadow-lg">
-              {/* REGISTER START */}
-              {step === 'REGISTER_START' && (
+              {/* REGISTER - Formulario unificado */}
+              {(step === 'REGISTER_START' || step === 'VERIFY_CODE') && (
                 <div className="space-y-2">
                   {/* Título centrado */}
                   <div className="text-center mb-4">
@@ -390,22 +433,25 @@ export function ClientAccessInline() {
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       placeholder="Nombre *"
-                      autoFocus
-                      className="h-[32px] flex-1 px-2.5 text-sm rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                      autoFocus={step === 'REGISTER_START'}
+                      disabled={step === 'VERIFY_CODE'}
+                      className="h-[32px] flex-1 px-2.5 text-sm rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:ring-2 focus:ring-cyan-400 disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                     <input
                       type="text"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       placeholder="Apellido *"
-                      className="h-[32px] flex-1 px-2.5 text-sm rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                      disabled={step === 'VERIFY_CODE'}
+                      className="h-[32px] flex-1 px-2.5 text-sm rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:ring-2 focus:ring-cyan-400 disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                   </div>
                   <div className="flex gap-2">
                     <select
                       value={phonePrefix}
                       onChange={(e) => setPhonePrefix(e.target.value)}
-                      className="h-[32px] w-[100px] px-2 text-sm rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:ring-2 focus:ring-cyan-400 cursor-pointer"
+                      disabled={step === 'VERIFY_CODE'}
+                      className="h-[32px] w-[100px] px-2 text-sm rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:ring-2 focus:ring-cyan-400 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       {phonePrefixes.map((prefix) => (
                         <option key={prefix.code} value={prefix.code}>
@@ -418,7 +464,8 @@ export function ClientAccessInline() {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                       placeholder="Celular (opcional)"
-                      className="h-[32px] flex-1 px-2.5 text-sm rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                      disabled={step === 'VERIFY_CODE'}
+                      className="h-[32px] flex-1 px-2.5 text-sm rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:ring-2 focus:ring-cyan-400 disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                   </div>
                   <div className="flex gap-2">
@@ -428,7 +475,8 @@ export function ClientAccessInline() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Contraseña *"
-                        className="h-[32px] w-full px-2.5 pr-8 text-sm rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                        disabled={step === 'VERIFY_CODE'}
+                        className="h-[32px] w-full px-2.5 pr-8 text-sm rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:ring-2 focus:ring-cyan-400 disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                       <button
                         type="button"
@@ -445,7 +493,8 @@ export function ClientAccessInline() {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="Confirmar *"
-                        className="h-[32px] w-full px-2.5 pr-8 text-sm rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                        disabled={step === 'VERIFY_CODE'}
+                        className="h-[32px] w-full px-2.5 pr-8 text-sm rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:ring-2 focus:ring-cyan-400 disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                       <button
                         type="button"
@@ -458,62 +507,71 @@ export function ClientAccessInline() {
                     </div>
                   </div>
                   
-                  {/* Botones: Cancelar (1/4) + Registrar (3/4) */}
+                  {/* Sección de verificación de código (aparece después de presionar Registrar) */}
+                  {step === 'VERIFY_CODE' && (
+                    <>
+                      <div className="pt-2 border-t border-cyan-300/30">
+                        <p className="text-xs text-muted-foreground text-center mb-2">
+                          Ingresa el código enviado a <strong className="text-foreground">{email}</strong>
+                        </p>
+                        <input
+                          type="text"
+                          value={code}
+                          onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          onKeyDown={(e) => e.key === 'Enter' && handleVerifyAndFinalize()}
+                          placeholder="000000"
+                          maxLength={6}
+                          autoFocus
+                          className="w-full h-10 px-3 text-center text-xl font-mono tracking-[0.3em] rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                        />
+                      </div>
+                    </>
+                  )}
+                  
+                  {/* Botones */}
                   <div className="flex gap-2 pt-1">
-                    <button
-                      onClick={handleReset}
-                      disabled={loading}
-                      className="h-[32px] w-1/4 text-sm font-medium rounded-md border border-cyan-300/50 bg-background hover:bg-accent flex items-center justify-center text-muted-foreground hover:text-foreground"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      onClick={handleRequestCode}
-                      disabled={loading || !firstName || !lastName || !password || !confirmPassword}
-                      className="h-[32px] w-3/4 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
-                    >
-                      {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                      Registrar
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* VERIFY CODE */}
-              {step === 'VERIFY_CODE' && (
-                <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground text-center">
-                    Ingresa el código enviado a <strong className="text-foreground">{email}</strong>
-                  </p>
-                  <input
-                    type="text"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    onKeyDown={(e) => e.key === 'Enter' && handleVerifyAndFinalize()}
-                    placeholder="000000"
-                    maxLength={6}
-                    autoFocus
-                    className="w-full h-10 px-3 text-center text-xl font-mono tracking-[0.3em] rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleVerifyAndFinalize}
-                      disabled={loading || code.length !== 6}
-                      className="h-[32px] flex-1 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
-                    >
-                      {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                      Confirmar
-                    </button>
-                    <button
-                      onClick={() => {
-                        setCode('');
-                        handleRequestCode();
-                      }}
-                      disabled={loading}
-                      className="h-[32px] px-3 text-sm font-medium rounded-md border border-cyan-300/50 bg-background hover:bg-accent flex items-center justify-center"
-                    >
-                      Reenviar
-                    </button>
+                    {step === 'REGISTER_START' ? (
+                      <>
+                        {/* Cancelar (1/4) + Registrar (3/4) */}
+                        <button
+                          onClick={handleReset}
+                          disabled={loading}
+                          className="h-[32px] w-1/4 text-sm font-medium rounded-md border border-cyan-300/50 bg-background hover:bg-accent flex items-center justify-center text-muted-foreground hover:text-foreground"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={handleRequestCode}
+                          disabled={loading || !firstName || !lastName || !password || !confirmPassword}
+                          className="h-[32px] w-3/4 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                        >
+                          {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                          Registrar
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {/* Confirmar + Reenviar */}
+                        <button
+                          onClick={handleVerifyAndFinalize}
+                          disabled={loading || code.length !== 6}
+                          className="h-[32px] flex-1 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                        >
+                          {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                          Confirmar
+                        </button>
+                        <button
+                          onClick={() => {
+                            setCode('');
+                            handleRequestCode();
+                          }}
+                          disabled={loading}
+                          className="h-[32px] px-4 text-sm font-medium rounded-md border border-cyan-300/50 bg-background hover:bg-accent flex items-center justify-center"
+                        >
+                          Reenviar
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
