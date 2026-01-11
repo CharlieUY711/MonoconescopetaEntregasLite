@@ -349,7 +349,7 @@ export function EntitiesPage() {
     <div className="space-y-4">
       {/* Sección superior: Título + KPI Cards en la misma línea */}
       <div className="flex items-center gap-4">
-        <h2 className="text-2xl font-bold text-gray-900 whitespace-nowrap">Entidades</h2>
+        <h2 className="text-2xl font-bold text-gray-900 w-[150px] min-w-[150px] shrink-0">Entidades</h2>
         <EntitiesKPICards />
       </div>
 

@@ -1,20 +1,29 @@
-import { Home, Settings, LogOut, Database, ChevronDown, ChevronRight, User, Package } from 'lucide-react';
+import { Home, Settings, LogOut, ChevronDown, ChevronRight, User, Package, UserCircle, Building2, FolderOpen } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import logoOddy from '../../../assets/70a0244bfc2c569920c790f10f4bb1381608d99c.png';
-import { useRole, canAccessDatabase, canAccessConfig } from '../../state/role';
+import { useRole } from '../../state/role';
 import { useAuth } from '../../contexts/AuthContext';
 import { signOut } from 'firebase/auth';
-import { auth } from '../../../lib/firebase';
+import { auth, db } from '../../../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 const menuItems = [
   { icon: Home, label: 'Inicio', path: '/dashboard' },
   { icon: Package, label: 'Entregas', path: '/dashboard/entregas' }
 ];
 
-const databaseSubmenu = [
-  { label: 'Entidades', path: '/dashboard/base-datos/entidades' },
-  { label: 'Personas', path: '/dashboard/base-datos/personas' }
+// Submenú "Mi Cuenta"
+const miCuentaSubmenu = [
+  { label: 'Mi Perfil', path: '/dashboard/mi-cuenta/perfil' },
+  { label: 'Mi Entidad', path: '/dashboard/mi-cuenta/entidad', requiresEntity: true }
+];
+
+// Submenú "Mis Datos" (renombrado de "Base de datos")
+const misDatosSubmenu = [
+  { label: 'Personas', path: '/dashboard/mis-datos/personas' },
+  { label: 'Entidades', path: '/dashboard/mis-datos/entidades' },
+  { label: 'Archivos', path: '/dashboard/mis-datos/archivos' }
 ];
 
 const configuracionSubmenu = [
@@ -28,12 +37,52 @@ export function Sidebar() {
   const [currentRole] = useRole();
   const { user, profile } = useAuth();
   
-  const [isDatabaseOpen, setIsDatabaseOpen] = useState(
-    location.pathname.startsWith('/dashboard/base-datos')
+  // Estados para los menús colapsables
+  const [isMiCuentaOpen, setIsMiCuentaOpen] = useState(
+    location.pathname.startsWith('/dashboard/mi-cuenta')
+  );
+  const [isMisDatosOpen, setIsMisDatosOpen] = useState(
+    location.pathname.startsWith('/dashboard/mis-datos') || 
+    location.pathname.startsWith('/dashboard/base-datos') // compatibilidad con rutas antiguas
   );
   const [isConfigOpen, setIsConfigOpen] = useState(
     location.pathname.startsWith('/dashboard/configuracion')
   );
+
+  // Estado para verificar si el usuario tiene entidad asociada
+  const [hasEntity, setHasEntity] = useState(false);
+
+  // Verificar si el usuario tiene entityId en client_profiles o es miembro de alguna entidad
+  useEffect(() => {
+    async function checkEntityAccess() {
+      if (!user) {
+        setHasEntity(false);
+        return;
+      }
+
+      try {
+        // Verificar en client_profiles si tiene entityId
+        const clientProfileRef = doc(db, 'client_profiles', user.uid);
+        const clientProfileSnap = await getDoc(clientProfileRef);
+        
+        if (clientProfileSnap.exists()) {
+          const data = clientProfileSnap.data();
+          if (data?.entityId || data?.entity) {
+            setHasEntity(true);
+            return;
+          }
+        }
+
+        // También podría verificar en entity_members, pero por ahora solo client_profiles
+        setHasEntity(false);
+      } catch (error) {
+        console.error('[Sidebar] Error verificando acceso a entidad:', error);
+        setHasEntity(false);
+      }
+    }
+
+    checkEntityAccess();
+  }, [user]);
 
   // Usar perfil de Firebase si está disponible, sino el role switcher
   const isAuthenticated = Boolean(user && profile);
@@ -42,7 +91,8 @@ export function Sidebar() {
     : currentRole;
 
   // Mostrar todos los menús para todos los usuarios
-  const showDatabase = true;
+  const showMiCuenta = true;
+  const showMisDatos = true;
   const showConfig = true;
 
   // Obtener nombre y rol para mostrar
@@ -126,29 +176,29 @@ export function Sidebar() {
           );
         })}
 
-        {/* Base de datos con submenú - Solo visible para Administrador */}
-        {showDatabase && (
+        {/* Mis Datos con submenú (antes "Base de datos") */}
+        {showMisDatos && (
           <div>
             <button
-              onClick={() => setIsDatabaseOpen(!isDatabaseOpen)}
+              onClick={() => setIsMisDatosOpen(!isMisDatosOpen)}
               className={`flex items-center gap-3 px-4 h-[48px] rounded-md transition-colors w-full ${
-                location.pathname.startsWith('/dashboard/base-datos')
+                location.pathname.startsWith('/dashboard/mis-datos') || location.pathname.startsWith('/dashboard/base-datos')
                   ? 'bg-white/20 text-white'
                   : 'text-white/90 hover:bg-white/10'
               }`}
             >
-              <Database className="h-5 w-5" />
-              <span className="text-sm flex-1 text-left">Base de datos</span>
-              {isDatabaseOpen ? (
+              <FolderOpen className="h-5 w-5" />
+              <span className="text-sm flex-1 text-left">Mis Datos</span>
+              {isMisDatosOpen ? (
                 <ChevronDown className="h-4 w-4" />
               ) : (
                 <ChevronRight className="h-4 w-4" />
               )}
             </button>
 
-            {isDatabaseOpen && (
+            {isMisDatosOpen && (
               <div className="ml-4 mt-1 space-y-1">
-                {databaseSubmenu.map((item) => {
+                {misDatosSubmenu.map((item) => {
                   const isActive = location.pathname === item.path;
                   return (
                     <Link
@@ -164,6 +214,51 @@ export function Sidebar() {
                     </Link>
                   );
                 })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Mi Cuenta con submenú */}
+        {showMiCuenta && (
+          <div>
+            <button
+              onClick={() => setIsMiCuentaOpen(!isMiCuentaOpen)}
+              className={`flex items-center gap-3 px-4 h-[48px] rounded-md transition-colors w-full ${
+                location.pathname.startsWith('/dashboard/mi-cuenta')
+                  ? 'bg-white/20 text-white'
+                  : 'text-white/90 hover:bg-white/10'
+              }`}
+            >
+              <UserCircle className="h-5 w-5" />
+              <span className="text-sm flex-1 text-left">Mi Cuenta</span>
+              {isMiCuentaOpen ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </button>
+
+            {isMiCuentaOpen && (
+              <div className="ml-4 mt-1 space-y-1">
+                {miCuentaSubmenu
+                  .filter(item => !item.requiresEntity || hasEntity)
+                  .map((item) => {
+                    const isActive = location.pathname === item.path;
+                    return (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        className={`flex items-center gap-3 px-4 h-[40px] rounded-md transition-colors text-sm ${
+                          isActive
+                            ? 'bg-white/15 text-white'
+                            : 'text-white/90 hover:bg-white/10'
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  })}
               </div>
             )}
           </div>

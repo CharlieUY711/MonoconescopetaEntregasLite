@@ -4,8 +4,12 @@ import { PerformancePage } from './dashboard/PerformancePage';
 import { EntitiesPage } from './dashboard/EntitiesPage';
 import { PeoplePage } from './dashboard/PeoplePage';
 import { EntregasPage } from './dashboard/EntregasPage';
-import { Route, Routes } from 'react-router-dom';
-import { Component, type ReactNode } from 'react';
+import { FilesPage } from './dashboard/FilesPage';
+import { ProfilePage } from './dashboard/ProfilePage';
+import { EntityPage } from './dashboard/EntityPage';
+import { Route, Routes, Navigate, useLocation } from 'react-router-dom';
+import { Component, type ReactNode, useEffect, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface DashboardProps {
   userRole?: 'operator' | 'client';
@@ -57,7 +61,32 @@ class DashboardErrorBoundary extends Component<{ children: ReactNode }, ErrorBou
 }
 
 export function Dashboard({ userRole = 'operator', userName = 'Usuario' }: DashboardProps) {
-  console.log('[Dashboard] Renderizando...', { userRole, userName });
+  const { isNewUser, clearNewUserFlag } = useAuth();
+  const location = useLocation();
+  const [shouldRedirect, setShouldRedirect] = useState(false);
+  
+  console.log('[Dashboard] Renderizando...', { userRole, userName, isNewUser });
+  
+  // Verificar si necesitamos redirigir al perfil (solo para usuarios nuevos)
+  useEffect(() => {
+    if (isNewUser && location.pathname === '/dashboard') {
+      console.log('[Dashboard] Usuario nuevo detectado, redirigiendo a Mi Perfil...');
+      setShouldRedirect(true);
+    }
+  }, [isNewUser, location.pathname]);
+
+  // Limpiar el flag cuando el usuario visita Mi Perfil
+  useEffect(() => {
+    if (isNewUser && location.pathname === '/dashboard/mi-cuenta/perfil') {
+      console.log('[Dashboard] Usuario nuevo en Mi Perfil, limpiando flag...');
+      clearNewUserFlag();
+    }
+  }, [isNewUser, location.pathname, clearNewUserFlag]);
+  
+  // Redirigir a Mi Perfil si es usuario nuevo
+  if (shouldRedirect && location.pathname === '/dashboard') {
+    return <Navigate to="/dashboard/mi-cuenta/perfil" replace />;
+  }
   
   return (
     <DashboardErrorBoundary>
@@ -67,12 +96,25 @@ export function Dashboard({ userRole = 'operator', userName = 'Usuario' }: Dashb
         
         <main className="ml-64 pt-[94px] px-6 pb-6">
           <Routes>
-            {/* C) FIX: Inicio = Entregas - Ambas rutas muestran la misma vista */}
+            {/* Inicio - Para usuarios existentes */}
             <Route index element={<EntregasPage />} />
             <Route path="entregas" element={<EntregasPage />} />
-            <Route path="configuracion/rendimiento" element={<PerformancePage userRole={userRole} />} />
+            
+            {/* Mi Cuenta */}
+            <Route path="mi-cuenta/perfil" element={<ProfilePage />} />
+            <Route path="mi-cuenta/entidad" element={<EntityPage />} />
+            
+            {/* Mis Datos (antes "Base de datos") */}
+            <Route path="mis-datos/personas" element={<PeoplePage />} />
+            <Route path="mis-datos/entidades" element={<EntitiesPage />} />
+            <Route path="mis-datos/archivos" element={<FilesPage />} />
+            
+            {/* Rutas antiguas - compatibilidad */}
             <Route path="base-datos/entidades" element={<EntitiesPage />} />
             <Route path="base-datos/personas" element={<PeoplePage />} />
+            
+            {/* Configuración */}
+            <Route path="configuracion/rendimiento" element={<PerformancePage userRole={userRole} />} />
             <Route path="configuracion/reportes" element={<div className="text-muted-foreground">Reportes - Próximamente</div>} />
           </Routes>
         </main>

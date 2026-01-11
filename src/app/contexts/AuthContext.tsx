@@ -20,11 +20,13 @@ interface AuthState {
   uiRole: RolSistema;
   loading: boolean;
   error: string | null;
+  isNewUser: boolean;
 }
 
 interface AuthContextValue extends AuthState {
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  clearNewUserFlag: () => void;
 }
 
 // ============================================
@@ -47,7 +49,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     profile: null,
     uiRole: 'Cliente',
     loading: true,
-    error: null
+    error: null,
+    isNewUser: false
   });
 
   // Escuchar cambios de autenticación
@@ -61,8 +64,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         try {
           // Intentar obtener/crear el perfil
           console.log('[AuthContext] Cargando perfil para:', user.uid);
-          const profile = await ensureUserProfile(user, 'password');
-          console.log('[AuthContext] Perfil cargado:', profile);
+          const { profile, isNewUser } = await ensureUserProfile(user, 'password');
+          console.log('[AuthContext] Perfil cargado:', profile, 'Es nuevo:', isNewUser);
           
           const uiRole = mapFirebaseRoleToUI(profile.role);
           
@@ -71,7 +74,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
             profile,
             uiRole,
             loading: false,
-            error: null
+            error: null,
+            isNewUser
           });
         } catch (error) {
           console.error('[AuthContext] Error cargando perfil:', error);
@@ -91,7 +95,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
             },
             uiRole: 'Cliente',
             loading: false,
-            error: 'Error cargando perfil, usando valores por defecto'
+            error: 'Error cargando perfil, usando valores por defecto',
+            isNewUser: false
           });
         }
       } else {
@@ -102,7 +107,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           profile: null,
           uiRole: 'Cliente',
           loading: false,
-          error: null
+          error: null,
+          isNewUser: false
         });
       }
     });
@@ -138,10 +144,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  // Función para limpiar el flag de usuario nuevo
+  const clearNewUserFlag = () => {
+    setState(prev => ({ ...prev, isNewUser: false }));
+  };
+
   const value: AuthContextValue = {
     ...state,
     signOut,
-    refreshProfile
+    refreshProfile,
+    clearNewUserFlag
   };
 
   // Mostrar loading mientras se inicializa

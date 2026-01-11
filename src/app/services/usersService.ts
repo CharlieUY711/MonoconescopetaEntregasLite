@@ -65,21 +65,8 @@ export function mapFirebaseRoleToUI(role: UserRole): RolSistema {
   }
 }
 
-/**
- * Convierte rol de UI a rol de Firestore
- */
-export function mapUIRoleToFirebase(role: RolSistema): UserRole {
-  switch (role) {
-    case 'Administrador':
-      return 'admin';
-    case 'Cliente':
-      return 'client';
-    case 'Chofer':
-      return 'driver_mock';
-    default:
-      return 'client';
-  }
-}
+// mapUIRoleToFirebase fue removida por no estar en uso.
+// Se puede agregar cuando sea necesaria.
 
 // ============================================
 // FUNCIONES PRINCIPALES
@@ -108,17 +95,26 @@ export async function getUserProfile(uid: string): Promise<{ exists: boolean; da
 }
 
 /**
+ * Resultado de ensureUserProfile con flag de usuario nuevo
+ */
+export interface EnsureProfileResult {
+  profile: UserProfile;
+  isNewUser: boolean;
+}
+
+/**
  * Asegura que existe un documento users/{uid} en Firestore.
  * Si no existe, lo crea con valores por defecto.
  * Si existe, actualiza updatedAt.
  * 
  * @param user - Usuario de Firebase Auth
  * @param provider - Proveedor de autenticación usado
+ * @returns { profile, isNewUser } - El perfil y si es un usuario nuevo
  */
 export async function ensureUserProfile(
   user: User, 
   provider: AuthProvider = 'password'
-): Promise<UserProfile> {
+): Promise<EnsureProfileResult> {
   console.log('[UsersService] ensureUserProfile llamado para:', user.uid);
   
   try {
@@ -140,9 +136,12 @@ export async function ensureUserProfile(
       }
 
       return {
-        ...existingData,
-        createdAt: existingData.createdAt?.toDate() || new Date(),
-        updatedAt: new Date()
+        profile: {
+          ...existingData,
+          createdAt: existingData.createdAt?.toDate() || new Date(),
+          updatedAt: new Date()
+        },
+        isNewUser: false
       };
     }
 
@@ -164,56 +163,33 @@ export async function ensureUserProfile(
 
     // Retornar con fechas como Date
     return {
-      ...newProfileData,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      profile: {
+        ...newProfileData,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      isNewUser: true
     };
   } catch (error) {
     console.error('[UsersService] Error en ensureUserProfile:', error);
     
     // Retornar perfil mínimo para no bloquear la app
     return {
-      uid: user.uid,
-      email: user.email || '',
-      displayName: user.displayName || null,
-      role: 'client',
-      clientId: DEFAULT_CLIENT_ID,
-      provider,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      profile: {
+        uid: user.uid,
+        email: user.email || '',
+        displayName: user.displayName || null,
+        role: 'client',
+        clientId: DEFAULT_CLIENT_ID,
+        provider,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      isNewUser: false
     };
   }
 }
 
-/**
- * Actualiza campos específicos del perfil de usuario
- * Solo admin debería poder cambiar role y clientId de otros usuarios
- */
-export async function updateUserProfile(
-  uid: string, 
-  updates: Partial<Pick<UserProfile, 'displayName' | 'role' | 'clientId'>>
-): Promise<void> {
-  const userRef = doc(db, USERS_COLLECTION, uid);
-  
-  await setDoc(userRef, {
-    ...updates,
-    updatedAt: serverTimestamp()
-  }, { merge: true });
-}
-
-/**
- * Verifica si el usuario actual tiene rol admin
- */
-export async function isCurrentUserAdmin(uid: string): Promise<boolean> {
-  const { data } = await getUserProfile(uid);
-  return data?.role === 'admin';
-}
-
-/**
- * Obtiene el clientId del usuario actual
- * @returns clientId o null si no tiene
- */
-export async function getCurrentUserClientId(uid: string): Promise<string | null> {
-  const { data } = await getUserProfile(uid);
-  return data?.clientId || null;
-}
+// Funciones adicionales (updateUserProfile, isCurrentUserAdmin, getCurrentUserClientId)
+// fueron removidas por no estar en uso actualmente.
+// Se pueden agregar cuando sean necesarias.
