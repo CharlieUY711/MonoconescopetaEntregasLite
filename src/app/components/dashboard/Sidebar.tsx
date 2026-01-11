@@ -114,7 +114,7 @@ export function Sidebar() {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+              className={`flex items-center gap-3 px-4 h-[48px] rounded-md transition-colors ${
                 isActive
                   ? 'bg-white/20 text-white'
                   : 'text-white/90 hover:bg-white/10'
@@ -131,7 +131,7 @@ export function Sidebar() {
           <div>
             <button
               onClick={() => setIsDatabaseOpen(!isDatabaseOpen)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors w-full ${
+              className={`flex items-center gap-3 px-4 h-[48px] rounded-md transition-colors w-full ${
                 location.pathname.startsWith('/dashboard/base-datos')
                   ? 'bg-white/20 text-white'
                   : 'text-white/90 hover:bg-white/10'
@@ -154,7 +154,7 @@ export function Sidebar() {
                     <Link
                       key={item.path}
                       to={item.path}
-                      className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-sm ${
+                      className={`flex items-center gap-3 px-4 h-[40px] rounded-md transition-colors text-sm ${
                         isActive
                           ? 'bg-white/15 text-white'
                           : 'text-white/90 hover:bg-white/10'
@@ -174,7 +174,7 @@ export function Sidebar() {
           <div>
             <button
               onClick={() => setIsConfigOpen(!isConfigOpen)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors w-full ${
+              className={`flex items-center gap-3 px-4 h-[48px] rounded-md transition-colors w-full ${
                 location.pathname.startsWith('/dashboard/configuracion')
                   ? 'bg-white/20 text-white'
                   : 'text-white/90 hover:bg-white/10'
@@ -197,7 +197,7 @@ export function Sidebar() {
                     <Link
                       key={item.path}
                       to={item.path}
-                      className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-sm ${
+                      className={`flex items-center gap-3 px-4 h-[40px] rounded-md transition-colors text-sm ${
                         isActive
                           ? 'bg-white/15 text-white'
                           : 'text-white/90 hover:bg-white/10'
@@ -216,7 +216,7 @@ export function Sidebar() {
       <div className="p-4">
         <button 
           onClick={handleSignOut}
-          className="flex items-center gap-3 w-full px-4 py-3 text-white/90 hover:bg-white/10 rounded-lg transition-colors"
+          className="flex items-center gap-3 w-full px-4 h-[48px] text-white/90 hover:bg-white/10 rounded-md transition-colors"
         >
           <LogOut className="h-5 w-5" />
           <span className="text-sm">Cerrar sesión</span>

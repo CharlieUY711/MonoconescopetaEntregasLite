@@ -1,7 +1,8 @@
 import { KPICards } from './KPICards';
 import { OrdersTable } from './OrdersTable';
 import { Plus, Search, Edit, Download, Printer, Eye, Save, X, Package, User, MapPin, Truck, FileText } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 
 interface DashboardHomeProps {
   userRole: 'operator' | 'client';
@@ -30,11 +31,22 @@ interface OrderForm {
 }
 
 export function DashboardHome({ userRole }: DashboardHomeProps) {
+  const location = useLocation();
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showColumnMenu, setShowColumnMenu] = useState(false);
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+
+  // Hacer foco en el buscador si viene desde login exitoso
+  useEffect(() => {
+    if (location.state?.focusSearch && searchInputRef.current) {
+      searchInputRef.current.focus();
+      // Limpiar el estado para que no vuelva a hacer foco
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
   const [visibleColumns, setVisibleColumns] = useState<ColumnVisibility>({
     id: true,
     client: true,
@@ -161,13 +173,14 @@ export function DashboardHome({ userRole }: DashboardHomeProps) {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
+              ref={searchInputRef}
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onFocus={() => setShowSuggestions(true)}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
               placeholder="Buscar en esta vista..."
-              className="w-full h-[35px] pl-10 pr-4 border-0 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/30"
+              className="w-full h-[32px] pl-10 pr-4 border-0 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/30"
             />
           </div>
 

@@ -49,7 +49,7 @@ export function NewOrderPage() {
         {/* Formulario principal */}
         <div className="lg:col-span-2 space-y-6">
           {/* Datos Generales */}
-          <div className="rounded-lg border bg-card p-6">
+          <div className="rounded-md border bg-card p-6">
             <div className="flex items-center gap-2 mb-6">
               <Package className="h-5 w-5 text-muted-foreground" />
               <h3 className="text-lg font-semibold">Datos Generales</h3>
@@ -61,7 +61,7 @@ export function NewOrderPage() {
                 <select
                   value={formData.entity}
                   onChange={(e) => handleInputChange('entity', e.target.value)}
-                  className="mt-1 w-full px-3 py-2 border rounded-lg bg-background"
+                  className="mt-1 w-full px-3 h-[32px] border rounded-md bg-background"
                 >
                   <option>Corporación ABC</option>
                   <option>Logística del Sur</option>
@@ -75,7 +75,7 @@ export function NewOrderPage() {
                 <select
                   value={formData.requestPerson}
                   onChange={(e) => handleInputChange('requestPerson', e.target.value)}
-                  className="mt-1 w-full px-3 py-2 border rounded-lg bg-background"
+                  className="mt-1 w-full px-3 h-[32px] border rounded-md bg-background"
                 >
                   <option>Juan Pérez</option>
                   <option>María González</option>
@@ -89,7 +89,7 @@ export function NewOrderPage() {
                 <select
                   value={formData.serviceType}
                   onChange={(e) => handleInputChange('serviceType', e.target.value)}
-                  className="mt-1 w-full px-3 py-2 border rounded-lg bg-background"
+                  className="mt-1 w-full px-3 h-[32px] border rounded-md bg-background"
                 >
                   <option>Entrega</option>
                   <option>Retiro</option>
@@ -102,7 +102,7 @@ export function NewOrderPage() {
                 <select
                   value={formData.priority}
                   onChange={(e) => handleInputChange('priority', e.target.value)}
-                  className="mt-1 w-full px-3 py-2 border rounded-lg bg-background"
+                  className="mt-1 w-full px-3 h-[32px] border rounded-md bg-background"
                 >
                   <option>Normal</option>
                   <option>Urgente</option>
@@ -116,7 +116,7 @@ export function NewOrderPage() {
                   type="date"
                   value={formData.desiredDate}
                   onChange={(e) => handleInputChange('desiredDate', e.target.value)}
-                  className="mt-1 w-full px-3 py-2 border rounded-lg bg-background"
+                  className="mt-1 w-full px-3 h-[32px] border rounded-md bg-background"
                 />
               </div>
 
@@ -127,14 +127,14 @@ export function NewOrderPage() {
                   value={formData.generalObservations}
                   onChange={(e) => handleInputChange('generalObservations', e.target.value)}
                   placeholder="Notas generales sobre el pedido..."
-                  className="mt-1 w-full px-3 py-2 border rounded-lg bg-background"
+                  className="mt-1 w-full px-3 h-[32px] border rounded-md bg-background"
                 />
               </div>
             </div>
           </div>
 
           {/* Origen (Retiro) */}
-          <div className="rounded-lg border bg-card p-6">
+          <div className="rounded-md border bg-card p-6">
             <div className="flex items-center gap-2 mb-6">
               <MapPin className="h-5 w-5 text-muted-foreground" />
               <h3 className="text-lg font-semibold">Origen (Retiro)</h3>
@@ -148,7 +148,7 @@ export function NewOrderPage() {
                   value={formData.originPlace}
                   onChange={(e) => handleInputChange('originPlace', e.target.value)}
                   placeholder="Nombre del comercio o lugar de retiro"
-                  className="mt-1 w-full px-3 py-2 border rounded-lg bg-background"
+                  className="mt-1 w-full px-3 h-[32px] border rounded-md bg-background"
                 />
               </div>
 
@@ -159,7 +159,7 @@ export function NewOrderPage() {
                   value={formData.originAddress}
                   onChange={(e) => handleInputChange('originAddress', e.target.value)}
                   placeholder="Dirección completa de retiro"
-                  className="mt-1 w-full px-3 py-2 border rounded-lg bg-background"
+                  className="mt-1 w-full px-3 h-[32px] border rounded-md bg-background"
                 />
               </div>
 
@@ -170,7 +170,7 @@ export function NewOrderPage() {
                   value={formData.originContact}
                   onChange={(e) => handleInputChange('originContact', e.target.value)}
                   placeholder="Nombre del contacto"
-                  className="mt-1 w-full px-3 py-2 border rounded-lg bg-background"
+                  className="mt-1 w-full px-3 h-[32px] border rounded-md bg-background"
                 />
               </div>
 
@@ -181,14 +181,14 @@ export function NewOrderPage() {
                   value={formData.originPhone}
                   onChange={(e) => handleInputChange('originPhone', e.target.value)}
                   placeholder="+598 99 123 456"
-                  className="mt-1 w-full px-3 py-2 border rounded-lg bg-background"
+                  className="mt-1 w-full px-3 h-[32px] border rounded-md bg-background"
                 />
               </div>
             </div>
           </div>
 
           {/* Destino (Entrega) */}
-          <div className="rounded-lg border bg-card p-6">
+          <div className="rounded-md border bg-card p-6">
             <div className="flex items-center gap-2 mb-6">
               <MapPin className="h-5 w-5 text-muted-foreground" />
               <h3 className="text-lg font-semibold">Destino (Entrega)</h3>
@@ -202,7 +202,7 @@ export function NewOrderPage() {
                   value={formData.destinationName}
                   onChange={(e) => handleInputChange('destinationName', e.target.value)}
                   placeholder="Nombre completo del destinatario"
-                  className="mt-1 w-full px-3 py-2 border rounded-lg bg-background"
+                  className="mt-1 w-full px-3 h-[32px] border rounded-md bg-background"
                 />
               </div>
 
@@ -213,7 +213,7 @@ export function NewOrderPage() {
                   value={formData.destinationAddress}
                   onChange={(e) => handleInputChange('destinationAddress', e.target.value)}
                   placeholder="Dirección completa de entrega"
-                  className="mt-1 w-full px-3 py-2 border rounded-lg bg-background"
+                  className="mt-1 w-full px-3 h-[32px] border rounded-md bg-background"
                 />
               </div>
 
@@ -224,7 +224,7 @@ export function NewOrderPage() {
                   value={formData.destinationContact}
                   onChange={(e) => handleInputChange('destinationContact', e.target.value)}
                   placeholder="Nombre del contacto"
-                  className="mt-1 w-full px-3 py-2 border rounded-lg bg-background"
+                  className="mt-1 w-full px-3 h-[32px] border rounded-md bg-background"
                 />
               </div>
 
@@ -235,14 +235,14 @@ export function NewOrderPage() {
                   value={formData.destinationPhone}
                   onChange={(e) => handleInputChange('destinationPhone', e.target.value)}
                   placeholder="+598 99 123 456"
-                  className="mt-1 w-full px-3 py-2 border rounded-lg bg-background"
+                  className="mt-1 w-full px-3 h-[32px] border rounded-md bg-background"
                 />
               </div>
             </div>
           </div>
 
           {/* Datos de la Entrega */}
-          <div className="rounded-lg border bg-card p-6">
+          <div className="rounded-md border bg-card p-6">
             <div className="flex items-center gap-2 mb-6">
               <FileText className="h-5 w-5 text-muted-foreground" />
               <h3 className="text-lg font-semibold">Datos de la Entrega</h3>
@@ -256,7 +256,7 @@ export function NewOrderPage() {
                   value={formData.contentDescription}
                   onChange={(e) => handleInputChange('contentDescription', e.target.value)}
                   placeholder="Ej: Documentos, paquetes, productos frágiles"
-                  className="mt-1 w-full px-3 py-2 border rounded-lg bg-background"
+                  className="mt-1 w-full px-3 h-[32px] border rounded-md bg-background"
                 />
               </div>
 
@@ -268,7 +268,7 @@ export function NewOrderPage() {
                   onChange={(e) => handleInputChange('packageQuantity', e.target.value)}
                   placeholder="1"
                   min="1"
-                  className="mt-1 w-full px-3 py-2 border rounded-lg bg-background"
+                  className="mt-1 w-full px-3 h-[32px] border rounded-md bg-background"
                 />
               </div>
 
@@ -281,7 +281,7 @@ export function NewOrderPage() {
                   placeholder="5"
                   min="0"
                   step="0.1"
-                  className="mt-1 w-full px-3 py-2 border rounded-lg bg-background"
+                  className="mt-1 w-full px-3 h-[32px] border rounded-md bg-background"
                 />
               </div>
 
@@ -292,7 +292,7 @@ export function NewOrderPage() {
                   value={formData.shipmentObservations}
                   onChange={(e) => handleInputChange('shipmentObservations', e.target.value)}
                   placeholder="Notas especiales: frágil, requiere refrigeración, etc."
-                  className="mt-1 w-full px-3 py-2 border rounded-lg bg-background"
+                  className="mt-1 w-full px-3 h-[32px] border rounded-md bg-background"
                 />
               </div>
             </div>
@@ -301,16 +301,16 @@ export function NewOrderPage() {
 
         {/* Panel lateral - Resumen y acciones */}
         <div className="lg:col-span-1">
-          <div className="rounded-lg border bg-card p-6 sticky top-6">
+          <div className="rounded-md border bg-card p-6 sticky top-6">
             <h3 className="text-lg font-semibold mb-6">Acciones</h3>
 
             <div className="space-y-4">
-              <button className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">
+              <button className="w-full flex items-center justify-center gap-2 px-4 h-[32px] bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity">
                 <Save className="h-4 w-4" />
                 Guardar pedido
               </button>
 
-              <button className="w-full flex items-center justify-center gap-2 px-4 py-3 border rounded-lg hover:bg-muted transition-colors">
+              <button className="w-full flex items-center justify-center gap-2 px-4 h-[32px] border rounded-md hover:bg-muted transition-colors">
                 <X className="h-4 w-4" />
                 Cancelar
               </button>

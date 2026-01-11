@@ -37,7 +37,7 @@ export function PeopleKPICards() {
       {kpiData.map((kpi, index) => {
         const Icon = kpi.icon;
         return (
-          <div key={index} className="rounded-lg border bg-card p-3">
+          <div key={index} className="rounded-md border bg-card p-3 h-[64px]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className={`p-1.5 rounded-md bg-muted ${kpi.color}`}>

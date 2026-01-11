@@ -383,7 +383,7 @@ export function PeoplePage() {
       </div>
 
       {/* Barra de herramientas naranja */}
-      <div className="flex items-center gap-4 px-6 py-3 bg-[#FF6B35] rounded-lg">
+      <div className="flex items-center gap-4 px-6 py-3 bg-[#FF6B35] rounded-md">
         {/* Buscador con autocompletado */}
         <div className="relative flex-1 max-w-md">
           <div className="relative">
@@ -395,13 +395,13 @@ export function PeoplePage() {
               onFocus={() => setShowSuggestions(true)}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
               placeholder="Buscar en esta vista..."
-              className="w-full h-[35px] pl-10 pr-4 border-0 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/30"
+              className="w-full h-[32px] pl-10 pr-4 border-0 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/30"
             />
           </div>
 
           {/* Sugerencias de autocompletado */}
           {showSuggestions && filteredSuggestions.length > 0 && (
-            <div className="absolute z-20 w-full mt-1 bg-card border rounded-lg shadow-lg max-h-64 overflow-y-auto">
+            <div className="absolute z-20 w-full mt-1 bg-card border rounded-md shadow-lg max-h-64 overflow-y-auto">
               {filteredSuggestions.map((suggestion, index) => (
                 <button
                   key={index}
@@ -416,7 +416,7 @@ export function PeoplePage() {
 
           {/* Mensaje de sin resultados */}
           {searchTerm && filteredPeople.length === 0 && (
-            <div className="absolute z-20 w-full mt-1 bg-card border rounded-lg shadow-lg p-4">
+            <div className="absolute z-20 w-full mt-1 bg-card border rounded-md shadow-lg p-4">
               <p className="text-sm text-muted-foreground text-center">
                 No se encontraron resultados para "{searchTerm}"
               </p>
@@ -429,7 +429,7 @@ export function PeoplePage() {
           {/* 1. Botón Nuevo */}
           <button 
             onClick={handleNewPerson}
-            className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors"
+            className="h-[32px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-md transition-colors"
           >
             <Plus className="h-4 w-4" />
             <span className="text-sm font-medium">Nuevo</span>
@@ -439,14 +439,14 @@ export function PeoplePage() {
           <button 
             onClick={handleEditPerson}
             disabled={!selectedPerson}
-            className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-[32px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Edit className="h-4 w-4" />
             <span className="text-sm font-medium">Editar</span>
           </button>
 
           {/* 3. Botón Importar */}
-          <button className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors">
+          <button className="h-[32px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-md transition-colors">
             <Download className="h-4 w-4 rotate-180" />
             <span className="text-sm font-medium">Importar</span>
           </button>
@@ -455,7 +455,7 @@ export function PeoplePage() {
           <div className="relative" ref={exportMenuRef}>
             <button 
               onClick={() => setShowExportMenu(!showExportMenu)}
-              className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors"
+              className="h-[32px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-md transition-colors"
             >
               <Download className="h-4 w-4" />
               <span className="text-sm font-medium">Exportar</span>
@@ -463,7 +463,7 @@ export function PeoplePage() {
 
             {/* Menú de Exportar */}
             {showExportMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-30">
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border z-30">
                 <div className="py-2">
                   <button
                     onClick={() => handleExport('CSV')}
@@ -489,7 +489,7 @@ export function PeoplePage() {
           </div>
 
           {/* 5. Botón Imprimir */}
-          <button className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors">
+          <button className="h-[32px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-md transition-colors">
             <Printer className="h-4 w-4" />
             <span className="text-sm font-medium">Imprimir</span>
           </button>
@@ -498,7 +498,7 @@ export function PeoplePage() {
           <div className="relative" ref={columnsMenuRef}>
             <button 
               onClick={() => setShowColumnsMenu(!showColumnsMenu)}
-              className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors"
+              className="h-[32px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-md transition-colors"
             >
               <Eye className="h-4 w-4" />
               <span className="text-sm font-medium">Vista</span>
@@ -506,7 +506,7 @@ export function PeoplePage() {
 
             {/* Menú de Vista */}
             {showColumnsMenu && (
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border z-30">
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg border z-30">
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold text-gray-900 text-sm">Mostrar columnas</h3>
@@ -543,18 +543,18 @@ export function PeoplePage() {
       </div>
 
       {/* Tabla principal */}
-      <div className="rounded-lg overflow-hidden border bg-white shadow-sm">
+      <div className="rounded-md overflow-hidden border bg-white shadow-sm">
         <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
           <table className="w-full">
             <thead className="sticky top-0 bg-[#00A9CE] border-b">
               <tr>
-                <th className="px-3.5 h-[35px] text-left">
+                <th className="px-3.5 h-[32px] text-left">
                   <input type="checkbox" className="rounded border-gray-400" />
                 </th>
                 
                 {columnVisibility.id && (
                   <th 
-                    className="px-3.5 h-[35px] text-left text-xs font-semibold text-white uppercase cursor-pointer"
+                    className="px-3.5 h-[32px] text-left text-xs font-semibold text-white uppercase cursor-pointer"
                     onClick={() => handleSort('id')}
                   >
                     <div className="flex items-center gap-1">
@@ -566,7 +566,7 @@ export function PeoplePage() {
 
                 {columnVisibility.name && (
                   <th 
-                    className="px-3.5 h-[35px] text-left text-xs font-semibold text-white uppercase cursor-pointer"
+                    className="px-3.5 h-[32px] text-left text-xs font-semibold text-white uppercase cursor-pointer"
                     onClick={() => handleSort('name')}
                   >
                     <div className="flex items-center gap-1">
@@ -578,7 +578,7 @@ export function PeoplePage() {
 
                 {columnVisibility.lastName && (
                   <th 
-                    className="px-3.5 h-[35px] text-left text-xs font-semibold text-white uppercase cursor-pointer"
+                    className="px-3.5 h-[32px] text-left text-xs font-semibold text-white uppercase cursor-pointer"
                     onClick={() => handleSort('lastName')}
                   >
                     <div className="flex items-center gap-1">
@@ -590,7 +590,7 @@ export function PeoplePage() {
 
                 {columnVisibility.entity && (
                   <th 
-                    className="px-3.5 h-[35px] text-left text-xs font-semibold text-white uppercase cursor-pointer"
+                    className="px-3.5 h-[32px] text-left text-xs font-semibold text-white uppercase cursor-pointer"
                     onClick={() => handleSort('entity')}
                   >
                     <div className="flex items-center gap-1">
@@ -602,7 +602,7 @@ export function PeoplePage() {
 
                 {columnVisibility.role && (
                   <th 
-                    className="px-3.5 h-[35px] text-left text-xs font-semibold text-white uppercase cursor-pointer"
+                    className="px-3.5 h-[32px] text-left text-xs font-semibold text-white uppercase cursor-pointer"
                     onClick={() => handleSort('role')}
                   >
                     <div className="flex items-center gap-1">
@@ -614,7 +614,7 @@ export function PeoplePage() {
 
                 {columnVisibility.status && (
                   <th 
-                    className="px-3.5 h-[35px] text-left text-xs font-semibold text-white uppercase cursor-pointer"
+                    className="px-3.5 h-[32px] text-left text-xs font-semibold text-white uppercase cursor-pointer"
                     onClick={() => handleSort('status')}
                   >
                     <div className="flex items-center gap-1">
@@ -625,7 +625,7 @@ export function PeoplePage() {
                 )}
 
                 {columnVisibility.email && (
-                  <th className="px-3.5 h-[35px] text-left text-xs font-semibold text-white uppercase">
+                  <th className="px-3.5 h-[32px] text-left text-xs font-semibold text-white uppercase">
                     EMAIL
                   </th>
                 )}
@@ -641,7 +641,7 @@ export function PeoplePage() {
                     index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                   } ${selectedPerson?.id === person.id ? 'bg-blue-100' : ''}`}
                 >
-                  <td className="px-3.5 h-[35px]">
+                  <td className="px-3.5 h-[32px]">
                     <input 
                       type="checkbox" 
                       className="rounded border-gray-300"
@@ -650,35 +650,35 @@ export function PeoplePage() {
                   </td>
 
                   {columnVisibility.id && (
-                    <td className="px-3.5 h-[35px] text-sm text-gray-900">{person.id}</td>
+                    <td className="px-3.5 h-[32px] text-sm text-gray-900">{person.id}</td>
                   )}
 
                   {columnVisibility.name && (
-                    <td className="px-3.5 h-[35px] text-sm text-gray-900 font-medium">{person.name}</td>
+                    <td className="px-3.5 h-[32px] text-sm text-gray-900 font-medium">{person.name}</td>
                   )}
 
                   {columnVisibility.lastName && (
-                    <td className="px-3.5 h-[35px] text-sm text-gray-900 font-medium">{person.lastName}</td>
+                    <td className="px-3.5 h-[32px] text-sm text-gray-900 font-medium">{person.lastName}</td>
                   )}
 
                   {columnVisibility.entity && (
-                    <td className="px-3.5 h-[35px] text-sm text-gray-700">{person.entity}</td>
+                    <td className="px-3.5 h-[32px] text-sm text-gray-700">{person.entity}</td>
                   )}
 
                   {columnVisibility.role && (
-                    <td className={`px-3.5 h-[35px] text-sm font-medium ${getRoleColor(person.role)}`}>
+                    <td className={`px-3.5 h-[32px] text-sm font-medium ${getRoleColor(person.role)}`}>
                       {person.role}
                     </td>
                   )}
 
                   {columnVisibility.status && (
-                    <td className={`px-3.5 h-[35px] text-sm font-medium ${getStatusColor(person.status)}`}>
+                    <td className={`px-3.5 h-[32px] text-sm font-medium ${getStatusColor(person.status)}`}>
                       {person.status}
                     </td>
                   )}
 
                   {columnVisibility.email && (
-                    <td className="px-3.5 h-[35px] text-sm text-gray-700">{person.email}</td>
+                    <td className="px-3.5 h-[32px] text-sm text-gray-700">{person.email}</td>
                   )}
                 </tr>
               ))}
@@ -690,10 +690,10 @@ export function PeoplePage() {
       {/* Formularios y vistas de detalle en la parte inferior */}
       {showNewForm ? (
         /* Formulario Nueva/Editar Persona */
-        <div className="rounded-lg border bg-white p-6 shadow-sm">
+        <div className="rounded-md border bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <div className={`p-2 rounded-lg ${isEditMode ? 'bg-blue-100' : 'bg-orange-100'}`}>
+              <div className={`p-2 rounded-md ${isEditMode ? 'bg-blue-100' : 'bg-orange-100'}`}>
                 {isEditMode ? (
                   <Edit className="h-5 w-5 text-[#00A9CE]" />
                 ) : (
@@ -712,13 +712,13 @@ export function PeoplePage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowNewForm(false)}
-                className="h-[35px] px-4 border rounded-lg hover:bg-gray-50 transition-colors flex items-center"
+                className="h-[32px] px-4 border rounded-md hover:bg-gray-50 transition-colors flex items-center"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSaveForm}
-                className="h-[35px] flex items-center gap-2 px-4 bg-[#00A9CE] text-white rounded-lg hover:opacity-90 transition-opacity"
+                className="h-[32px] flex items-center gap-2 px-4 bg-[#00A9CE] text-white rounded-md hover:opacity-90 transition-opacity"
               >
                 <Save className="h-4 w-4" />
                 {isEditMode ? 'Guardar Cambios' : 'Guardar'}
@@ -735,7 +735,7 @@ export function PeoplePage() {
                   value={newPersonForm.name}
                   onChange={(e) => setNewPersonForm({ ...newPersonForm, name: e.target.value })}
                   placeholder="Nombre"
-                  className="w-full h-[35px] px-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                  className="w-full h-[32px] px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
                 />
               </div>
 
@@ -746,7 +746,7 @@ export function PeoplePage() {
                   value={newPersonForm.lastName}
                   onChange={(e) => setNewPersonForm({ ...newPersonForm, lastName: e.target.value })}
                   placeholder="Apellido"
-                  className="w-full h-[35px] px-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                  className="w-full h-[32px] px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
                 />
               </div>
 
@@ -757,7 +757,7 @@ export function PeoplePage() {
                   value={newPersonForm.idNumber}
                   onChange={(e) => setNewPersonForm({ ...newPersonForm, idNumber: e.target.value })}
                   placeholder="1.234.567-8"
-                  className="w-full h-[35px] px-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                  className="w-full h-[32px] px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
                 />
               </div>
 
@@ -766,7 +766,7 @@ export function PeoplePage() {
                 <select
                   value={newPersonForm.role}
                   onChange={(e) => setNewPersonForm({ ...newPersonForm, role: e.target.value })}
-                  className="w-full h-[35px] px-3 border rounded-[8px] focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                  className="w-full h-[32px] px-3 border rounded-[8px] focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
                 >
                   {ROLES_PERSONA.map(rol => (
                     <option key={rol} value={rol}>{rol}</option>
@@ -781,7 +781,7 @@ export function PeoplePage() {
                   value={newPersonForm.entity}
                   onChange={(e) => setNewPersonForm({ ...newPersonForm, entity: e.target.value })}
                   placeholder="Nombre de la entidad"
-                  className="w-full h-[35px] px-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                  className="w-full h-[32px] px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
                 />
               </div>
 
@@ -790,7 +790,7 @@ export function PeoplePage() {
                 <select
                   value={newPersonForm.status}
                   onChange={(e) => setNewPersonForm({ ...newPersonForm, status: e.target.value })}
-                  className="w-full h-[35px] px-3 border rounded-[8px] focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                  className="w-full h-[32px] px-3 border rounded-[8px] focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
                 >
                   {ESTADOS_REGISTRO.map(estado => (
                     <option key={estado} value={estado}>{estado}</option>
@@ -806,7 +806,7 @@ export function PeoplePage() {
                 value={newPersonForm.address}
                 onChange={(e) => setNewPersonForm({ ...newPersonForm, address: e.target.value })}
                 placeholder="Dirección completa"
-                className="w-full h-[35px] px-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                className="w-full h-[32px] px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
               />
             </div>
 
@@ -818,7 +818,7 @@ export function PeoplePage() {
                   value={newPersonForm.email}
                   onChange={(e) => setNewPersonForm({ ...newPersonForm, email: e.target.value })}
                   placeholder="correo@ejemplo.com"
-                  className="w-full h-[35px] px-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                  className="w-full h-[32px] px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
                 />
               </div>
 
@@ -829,7 +829,7 @@ export function PeoplePage() {
                   value={newPersonForm.phone}
                   onChange={(e) => setNewPersonForm({ ...newPersonForm, phone: e.target.value })}
                   placeholder="+598 99 123 456"
-                  className="w-full h-[35px] px-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                  className="w-full h-[32px] px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
                 />
               </div>
             </div>
@@ -841,7 +841,7 @@ export function PeoplePage() {
                 value={newPersonForm.observations}
                 onChange={(e) => setNewPersonForm({ ...newPersonForm, observations: e.target.value })}
                 placeholder="Notas internas..."
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
               />
             </div>
           </div>
@@ -849,9 +849,9 @@ export function PeoplePage() {
       ) : selectedPerson && (
         <div className="grid grid-cols-2 gap-4">
           {/* Tarjeta Detalle Personal */}
-          <div className="rounded-lg border bg-white p-6 shadow-sm">
+          <div className="rounded-md border bg-white p-6 shadow-sm">
             <div className="flex items-center gap-4 mb-6">
-              <div className="p-2 rounded-lg bg-orange-100">
+              <div className="p-2 rounded-md bg-orange-100">
                 <User className="h-5 w-5 text-[#FF6B35]" />
               </div>
               <div>
@@ -894,10 +894,10 @@ export function PeoplePage() {
           </div>
 
           {/* Tarjeta Información de Entidad/Contacto */}
-          <div className="rounded-lg border bg-white p-6 shadow-sm">
+          <div className="rounded-md border bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
-                <div className="p-2 rounded-lg bg-blue-100">
+                <div className="p-2 rounded-md bg-blue-100">
                   <Building2 className="h-5 w-5 text-[#00A9CE]" />
                 </div>
                 <div>
@@ -912,7 +912,7 @@ export function PeoplePage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setDetailView('personal')}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
                     detailView === 'personal'
                       ? 'bg-[#00A9CE] text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -922,7 +922,7 @@ export function PeoplePage() {
                 </button>
                 <button
                   onClick={() => setDetailView('entidad')}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
                     detailView === 'entidad'
                       ? 'bg-[#00A9CE] text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'

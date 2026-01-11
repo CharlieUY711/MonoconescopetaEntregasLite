@@ -354,7 +354,7 @@ export function EntitiesPage() {
       </div>
 
       {/* Barra de herramientas naranja */}
-      <div className="flex items-center gap-4 px-6 py-3 bg-[#FF6B35] rounded-lg">
+      <div className="flex items-center gap-4 px-6 py-3 bg-[#FF6B35] rounded-md">
         {/* Buscador con autocompletado */}
         <div className="relative flex-1 max-w-md">
           <div className="relative">
@@ -366,13 +366,13 @@ export function EntitiesPage() {
               onFocus={() => setShowSuggestions(true)}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
               placeholder="Buscar en esta vista..."
-              className="w-full h-[35px] pl-10 pr-4 border-0 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/30"
+              className="w-full h-[32px] pl-10 pr-4 border-0 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/30"
             />
           </div>
 
           {/* Sugerencias de autocompletado */}
           {showSuggestions && filteredSuggestions.length > 0 && (
-            <div className="absolute z-20 w-full mt-1 bg-card border rounded-lg shadow-lg max-h-64 overflow-y-auto">
+            <div className="absolute z-20 w-full mt-1 bg-card border rounded-md shadow-lg max-h-64 overflow-y-auto">
               {filteredSuggestions.map((suggestion, index) => (
                 <button
                   key={index}
@@ -387,7 +387,7 @@ export function EntitiesPage() {
 
           {/* Mensaje de sin resultados */}
           {searchTerm && filteredEntities.length === 0 && (
-            <div className="absolute z-20 w-full mt-1 bg-card border rounded-lg shadow-lg p-4">
+            <div className="absolute z-20 w-full mt-1 bg-card border rounded-md shadow-lg p-4">
               <p className="text-sm text-muted-foreground text-center">
                 No se encontraron resultados para "{searchTerm}"
               </p>
@@ -400,7 +400,7 @@ export function EntitiesPage() {
           {/* 1. Botón Nuevo */}
           <button 
             onClick={handleNewEntity}
-            className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors"
+            className="h-[32px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-md transition-colors"
           >
             <Plus className="h-4 w-4" />
             <span className="text-sm font-medium">Nuevo</span>
@@ -410,14 +410,14 @@ export function EntitiesPage() {
           <button 
             onClick={handleEditEntity}
             disabled={!selectedEntity}
-            className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-[32px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Edit className="h-4 w-4" />
             <span className="text-sm font-medium">Editar</span>
           </button>
 
           {/* 3. Botón Importar */}
-          <button className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors">
+          <button className="h-[32px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-md transition-colors">
             <Download className="h-4 w-4 rotate-180" />
             <span className="text-sm font-medium">Importar</span>
           </button>
@@ -426,7 +426,7 @@ export function EntitiesPage() {
           <div className="relative" ref={exportMenuRef}>
             <button 
               onClick={() => setShowExportMenu(!showExportMenu)}
-              className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors"
+              className="h-[32px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-md transition-colors"
             >
               <Download className="h-4 w-4" />
               <span className="text-sm font-medium">Exportar</span>
@@ -434,7 +434,7 @@ export function EntitiesPage() {
 
             {/* Menú de Exportar */}
             {showExportMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-30">
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border z-30">
                 <div className="py-2">
                   <button
                     onClick={() => handleExport('CSV')}
@@ -460,7 +460,7 @@ export function EntitiesPage() {
           </div>
 
           {/* 5. Botón Imprimir */}
-          <button className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors">
+          <button className="h-[32px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-md transition-colors">
             <Printer className="h-4 w-4" />
             <span className="text-sm font-medium">Imprimir</span>
           </button>
@@ -469,7 +469,7 @@ export function EntitiesPage() {
           <div className="relative" ref={columnsMenuRef}>
             <button 
               onClick={() => setShowColumnsMenu(!showColumnsMenu)}
-              className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors"
+              className="h-[32px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-md transition-colors"
             >
               <Eye className="h-4 w-4" />
               <span className="text-sm font-medium">Vista</span>
@@ -477,7 +477,7 @@ export function EntitiesPage() {
 
             {/* Menú de Vista */}
             {showColumnsMenu && (
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border z-30">
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg border z-30">
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold text-gray-900 text-sm">Mostrar columnas</h3>
@@ -513,18 +513,18 @@ export function EntitiesPage() {
       </div>
 
       {/* Tabla principal */}
-      <div className="rounded-lg overflow-hidden border bg-white shadow-sm">
+      <div className="rounded-md overflow-hidden border bg-white shadow-sm">
         <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
           <table className="w-full">
             <thead className="sticky top-0 bg-[#00A9CE] border-b">
               <tr>
-                <th className="px-3.5 h-[35px] text-left">
+                <th className="px-3.5 h-[32px] text-left">
                   <input type="checkbox" className="rounded border-gray-400" />
                 </th>
                 
                 {columnVisibility.id && (
                   <th 
-                    className="px-3.5 h-[35px] text-left text-xs font-semibold text-white uppercase cursor-pointer"
+                    className="px-3.5 h-[32px] text-left text-xs font-semibold text-white uppercase cursor-pointer"
                     onClick={() => handleSort('id')}
                   >
                     <div className="flex items-center gap-1">
@@ -536,7 +536,7 @@ export function EntitiesPage() {
 
                 {columnVisibility.name && (
                   <th 
-                    className="px-3.5 h-[35px] text-left text-xs font-semibold text-white uppercase cursor-pointer"
+                    className="px-3.5 h-[32px] text-left text-xs font-semibold text-white uppercase cursor-pointer"
                     onClick={() => handleSort('name')}
                   >
                     <div className="flex items-center gap-1">
@@ -548,7 +548,7 @@ export function EntitiesPage() {
 
                 {columnVisibility.type && (
                   <th 
-                    className="px-3.5 h-[35px] text-left text-xs font-semibold text-white uppercase cursor-pointer"
+                    className="px-3.5 h-[32px] text-left text-xs font-semibold text-white uppercase cursor-pointer"
                     onClick={() => handleSort('type')}
                   >
                     <div className="flex items-center gap-1">
@@ -560,7 +560,7 @@ export function EntitiesPage() {
 
                 {columnVisibility.status && (
                   <th 
-                    className="px-3.5 h-[35px] text-left text-xs font-semibold text-white uppercase cursor-pointer"
+                    className="px-3.5 h-[32px] text-left text-xs font-semibold text-white uppercase cursor-pointer"
                     onClick={() => handleSort('status')}
                   >
                     <div className="flex items-center gap-1">
@@ -572,7 +572,7 @@ export function EntitiesPage() {
 
                 {columnVisibility.fiscalId && (
                   <th 
-                    className="px-3.5 h-[35px] text-left text-xs font-semibold text-white uppercase cursor-pointer"
+                    className="px-3.5 h-[32px] text-left text-xs font-semibold text-white uppercase cursor-pointer"
                     onClick={() => handleSort('fiscalId')}
                   >
                     <div className="flex items-center gap-1">
@@ -583,7 +583,7 @@ export function EntitiesPage() {
                 )}
 
                 {columnVisibility.address && (
-                  <th className="px-3.5 h-[35px] text-left text-xs font-semibold text-white uppercase">
+                  <th className="px-3.5 h-[32px] text-left text-xs font-semibold text-white uppercase">
                     DIRECCIÓN
                   </th>
                 )}
@@ -599,7 +599,7 @@ export function EntitiesPage() {
                     index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                   } ${selectedEntity?.id === entity.id ? 'bg-blue-100' : ''}`}
                 >
-                  <td className="px-3.5 h-[35px]">
+                  <td className="px-3.5 h-[32px]">
                     <input 
                       type="checkbox" 
                       className="rounded border-gray-300"
@@ -608,31 +608,31 @@ export function EntitiesPage() {
                   </td>
 
                   {columnVisibility.id && (
-                    <td className="px-3.5 h-[35px] text-sm text-gray-900">{entity.id}</td>
+                    <td className="px-3.5 h-[32px] text-sm text-gray-900">{entity.id}</td>
                   )}
 
                   {columnVisibility.name && (
-                    <td className="px-3.5 h-[35px] text-sm text-gray-900 font-medium">{entity.name}</td>
+                    <td className="px-3.5 h-[32px] text-sm text-gray-900 font-medium">{entity.name}</td>
                   )}
 
                   {columnVisibility.type && (
-                    <td className={`px-3.5 h-[35px] text-sm font-medium ${getTypeColor(entity.type)}`}>
+                    <td className={`px-3.5 h-[32px] text-sm font-medium ${getTypeColor(entity.type)}`}>
                       {entity.type}
                     </td>
                   )}
 
                   {columnVisibility.status && (
-                    <td className={`px-3.5 h-[35px] text-sm font-medium ${getStatusColor(entity.status)}`}>
+                    <td className={`px-3.5 h-[32px] text-sm font-medium ${getStatusColor(entity.status)}`}>
                       {entity.status}
                     </td>
                   )}
 
                   {columnVisibility.fiscalId && (
-                    <td className="px-3.5 h-[35px] text-sm text-gray-700">{entity.fiscalId}</td>
+                    <td className="px-3.5 h-[32px] text-sm text-gray-700">{entity.fiscalId}</td>
                   )}
 
                   {columnVisibility.address && (
-                    <td className="px-3.5 h-[35px] text-sm text-gray-700">{entity.address}</td>
+                    <td className="px-3.5 h-[32px] text-sm text-gray-700">{entity.address}</td>
                   )}
                 </tr>
               ))}
@@ -644,10 +644,10 @@ export function EntitiesPage() {
       {/* Formularios y vistas de detalle en la parte inferior */}
       {showNewForm ? (
         /* Formulario Nueva Entidad */
-        <div className="rounded-lg border bg-white p-6 shadow-sm">
+        <div className="rounded-md border bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <div className={`p-2 rounded-lg ${isEditMode ? 'bg-blue-100' : 'bg-orange-100'}`}>
+              <div className={`p-2 rounded-md ${isEditMode ? 'bg-blue-100' : 'bg-orange-100'}`}>
                 {isEditMode ? (
                   <Edit className="h-5 w-5 text-[#00A9CE]" />
                 ) : (
@@ -666,13 +666,13 @@ export function EntitiesPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowNewForm(false)}
-                className="h-[35px] px-4 border rounded-lg hover:bg-gray-50 transition-colors flex items-center"
+                className="h-[32px] px-4 border rounded-md hover:bg-gray-50 transition-colors flex items-center"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSaveForm}
-                className="h-[35px] flex items-center gap-2 px-4 bg-[#00A9CE] text-white rounded-lg hover:opacity-90 transition-opacity"
+                className="h-[32px] flex items-center gap-2 px-4 bg-[#00A9CE] text-white rounded-md hover:opacity-90 transition-opacity"
               >
                 <Save className="h-4 w-4" />
                 {isEditMode ? 'Guardar Cambios' : 'Guardar'}
@@ -689,7 +689,7 @@ export function EntitiesPage() {
                   value={newEntityForm.name}
                   onChange={(e) => setNewEntityForm({ ...newEntityForm, name: e.target.value })}
                   placeholder="Nombre de la entidad"
-                  className="w-full h-[35px] px-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                  className="w-full h-[32px] px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
                 />
               </div>
 
@@ -698,7 +698,7 @@ export function EntitiesPage() {
                 <select
                   value={newEntityForm.type}
                   onChange={(e) => setNewEntityForm({ ...newEntityForm, type: e.target.value })}
-                  className="w-full h-[35px] px-3 border rounded-[8px] focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                  className="w-full h-[32px] px-3 border rounded-[8px] focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
                 >
                   {TIPOS_ENTIDAD.map(tipo => (
                     <option key={tipo} value={tipo}>{tipo}</option>
@@ -713,7 +713,7 @@ export function EntitiesPage() {
                   value={newEntityForm.fiscalId}
                   onChange={(e) => setNewEntityForm({ ...newEntityForm, fiscalId: e.target.value })}
                   placeholder="211234560011"
-                  className="w-full h-[35px] px-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                  className="w-full h-[32px] px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
                 />
               </div>
 
@@ -722,7 +722,7 @@ export function EntitiesPage() {
                 <select
                   value={newEntityForm.status}
                   onChange={(e) => setNewEntityForm({ ...newEntityForm, status: e.target.value })}
-                  className="w-full h-[35px] px-3 border rounded-[8px] focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                  className="w-full h-[32px] px-3 border rounded-[8px] focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
                 >
                   {ESTADOS_REGISTRO.map(estado => (
                     <option key={estado} value={estado}>{estado}</option>
@@ -738,7 +738,7 @@ export function EntitiesPage() {
                 value={newEntityForm.address}
                 onChange={(e) => setNewEntityForm({ ...newEntityForm, address: e.target.value })}
                 placeholder="Dirección completa"
-                className="w-full h-[35px] px-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                className="w-full h-[32px] px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
               />
             </div>
 
@@ -750,7 +750,7 @@ export function EntitiesPage() {
                   value={newEntityForm.email}
                   onChange={(e) => setNewEntityForm({ ...newEntityForm, email: e.target.value })}
                   placeholder="contacto@ejemplo.com"
-                  className="w-full h-[35px] px-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                  className="w-full h-[32px] px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
                 />
               </div>
 
@@ -761,7 +761,7 @@ export function EntitiesPage() {
                   value={newEntityForm.phone}
                   onChange={(e) => setNewEntityForm({ ...newEntityForm, phone: e.target.value })}
                   placeholder="+598 2900 0000"
-                  className="w-full h-[35px] px-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                  className="w-full h-[32px] px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
                 />
               </div>
             </div>
@@ -773,7 +773,7 @@ export function EntitiesPage() {
                 value={newEntityForm.contact}
                 onChange={(e) => setNewEntityForm({ ...newEntityForm, contact: e.target.value })}
                 placeholder="Nombre del contacto"
-                className="w-full h-[35px] px-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                className="w-full h-[32px] px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
               />
             </div>
 
@@ -784,7 +784,7 @@ export function EntitiesPage() {
                 value={newEntityForm.observations}
                 onChange={(e) => setNewEntityForm({ ...newEntityForm, observations: e.target.value })}
                 placeholder="Notas internas..."
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
               />
             </div>
           </div>
@@ -792,9 +792,9 @@ export function EntitiesPage() {
       ) : selectedEntity && (
         <div className="grid grid-cols-2 gap-4">
           {/* Tarjeta Detalle de Entidad */}
-          <div className="rounded-lg border bg-white p-6 shadow-sm">
+          <div className="rounded-md border bg-white p-6 shadow-sm">
             <div className="flex items-center gap-4 mb-6">
-              <div className="p-2 rounded-lg bg-orange-100">
+              <div className="p-2 rounded-md bg-orange-100">
                 <Building2 className="h-5 w-5 text-[#FF6B35]" />
               </div>
               <div>
@@ -837,10 +837,10 @@ export function EntitiesPage() {
           </div>
 
           {/* Tarjeta Información de Contacto/Observaciones */}
-          <div className="rounded-lg border bg-white p-6 shadow-sm">
+          <div className="rounded-md border bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
-                <div className="p-2 rounded-lg bg-blue-100">
+                <div className="p-2 rounded-md bg-blue-100">
                   <User className="h-5 w-5 text-[#00A9CE]" />
                 </div>
                 <div>
@@ -855,7 +855,7 @@ export function EntitiesPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setDetailView('contacto')}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
                     detailView === 'contacto'
                       ? 'bg-[#00A9CE] text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -865,7 +865,7 @@ export function EntitiesPage() {
                 </button>
                 <button
                   onClick={() => setDetailView('informacion')}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
                     detailView === 'informacion'
                       ? 'bg-[#00A9CE] text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'

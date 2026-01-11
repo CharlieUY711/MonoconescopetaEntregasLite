@@ -47,9 +47,9 @@ function GoogleIcon({ className }: { className?: string }) {
 // ESTILOS COMUNES
 // ============================================
 
-const inputStyle = "h-[35px] w-44 px-3 text-sm rounded-lg border border-cyan-300/50 bg-background focus:outline-none focus:ring-2 focus:ring-cyan-400 disabled:opacity-50";
-const buttonPrimaryStyle = "h-[35px] px-4 text-sm font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 min-w-[90px]";
-const buttonSecondaryStyle = "h-[35px] px-4 text-sm font-medium rounded-lg border border-cyan-300/50 bg-background hover:bg-accent flex items-center justify-center gap-1.5 min-w-[90px]";
+const inputStyle = "h-[32px] w-[180px] px-3 text-xs rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:border-cyan-500 disabled:opacity-50";
+const buttonPrimaryStyle = "h-[32px] w-[135px] text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5";
+const buttonSecondaryStyle = "h-[32px] w-[135px] text-sm font-medium rounded-md border border-cyan-300/50 bg-background hover:bg-accent flex items-center justify-center gap-1.5";
 
 // ============================================
 // COMPONENT
@@ -74,6 +74,13 @@ export function ClientAccessInline() {
   const [phonePrefix, setPhonePrefix] = useState('+598'); // Uruguay por defecto
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
+  
+  // Estados para foco de campos de contraseña en registro
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [confirmPasswordFocused, setConfirmPasswordFocused] = useState(false);
+  
+  // Estado para el resultado de verificación del código
+  const [codeStatus, setCodeStatus] = useState<'idle' | 'success' | 'error'>('idle');
   
   // Prefijos telefónicos internacionales
   const phonePrefixes = [
@@ -104,6 +111,20 @@ export function ClientAccessInline() {
   const showPasswordField = step === 'LOGIN_STEP';
   // Muestra formulario expandido para registro
   const showExpandedForm = step === 'REGISTER_START' || step === 'VERIFY_CODE';
+
+  // Determinar color de borde para campos de contraseña en registro
+  const getPasswordBorderClass = () => {
+    // Si alguno tiene foco, usar celeste clarito con focus para intenso
+    if (passwordFocused || confirmPasswordFocused) {
+      return 'border-cyan-300/50 focus:border-cyan-500';
+    }
+    // Si ambos tienen valor, verificar coincidencia
+    if (password && confirmPassword) {
+      return password === confirmPassword ? 'border-green-500' : 'border-red-500';
+    }
+    // Por defecto, celeste clarito
+    return 'border-cyan-300/50 focus:border-cyan-500';
+  };
 
   // ============================================
   // HANDLERS
@@ -148,10 +169,10 @@ export function ClientAccessInline() {
 
     try {
       await loginWithEmail(email, password);
-      setSuccess('Inicio de sesión correcto');
+      setSuccess('Login correcto: accediendo a su espacio de trabajo');
       setTimeout(() => {
         setStep('DONE');
-        navigate('/dashboard');
+        navigate('/dashboard', { state: { focusSearch: true } });
       }, 800);
     } catch (err) {
       const firebaseError = err as { code?: string };
@@ -176,7 +197,11 @@ export function ClientAccessInline() {
 
     try {
       await sendPasswordResetEmail(auth, email);
-      setSuccess('Email enviado. Revisa tu bandeja de entrada.');
+      // Limpiar formulario y volver al estado original
+      setEmail('');
+      setPassword('');
+      setStep('EMAIL_STEP');
+      setSuccess('Email de recuperación enviado. Revisa tu bandeja de entrada.');
     } catch (err) {
       setError(getFirebaseErrorMessage(err));
     } finally {
@@ -229,24 +254,28 @@ export function ClientAccessInline() {
   const handleVerifyAndFinalize = useCallback(async () => {
     if (!isValidCode(code)) {
       setError('Ingresa el código de 6 dígitos');
+      setCodeStatus('error');
       return;
     }
 
     setLoading(true);
     setError(null);
     setSuccess(null);
+    setCodeStatus('idle');
 
     try {
       await verifyEmailCode(email, code);
       await finalizeRegistration(email);
       await loginWithEmail(email, password);
-      
+
+      setCodeStatus('success');
       setSuccess('Registro completado correctamente');
       setTimeout(() => {
         setStep('DONE');
-        navigate('/dashboard');
+        navigate('/dashboard', { state: { focusSearch: true } });
       }, 800);
     } catch (err) {
+      setCodeStatus('error');
       setError(getCloudFunctionErrorMessage(err));
       setLoading(false);
     }
@@ -306,7 +335,7 @@ export function ClientAccessInline() {
 
   return (
     <>
-      <div className="flex flex-col">
+      <div className="relative flex flex-col">
         {/* Fila principal: Email [+ Password] + Avanzar | Acceder con G */}
         <div className="flex items-center gap-2">
           <input
@@ -324,64 +353,81 @@ export function ClientAccessInline() {
             }}
             placeholder="Ingrese su correo"
             disabled={loading || showPasswordField || showExpandedForm}
-            className={inputStyle}
+            className={`h-[32px] w-[180px] px-3 text-xs rounded-md border bg-background focus:outline-none disabled:opacity-50 ${
+              showPasswordField 
+                ? 'border-green-500' 
+                : 'border-cyan-300/50 focus:border-cyan-500'
+            }`}
           />
 
-          {showPasswordField && (
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                placeholder="Ingrese su contraseña"
-                autoFocus
-                disabled={loading}
-                className={inputStyle + " pr-9"}
-              />
+          {/* Cuando NO está en modo login: mostrar botones normales */}
+          {!showPasswordField && (
+            <>
               <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                tabIndex={-1}
+                onClick={handleEmailSubmit}
+                disabled={loading || !email || showExpandedForm}
+                className={buttonPrimaryStyle}
               >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {loading && !showExpandedForm && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Acceso/Registro
               </button>
-            </div>
+
+              <button
+                onClick={handleGoogleLogin}
+                disabled={loading || showExpandedForm}
+                className={buttonSecondaryStyle}
+              >
+                {loading && step === 'EMAIL_STEP' ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <>
+                    Acceder con
+                    <GoogleIcon className="h-4 w-4" />
+                  </>
+                )}
+              </button>
+            </>
           )}
 
-          <button
-            onClick={showPasswordField ? handleLogin : handleEmailSubmit}
-            disabled={loading || !email || (showPasswordField && !password) || showExpandedForm}
-            className={buttonPrimaryStyle}
-          >
-            {loading && !showExpandedForm && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            {showPasswordField ? 'Ingresar' : 'Acceso/Registro'}
-          </button>
-
-          <button
-            onClick={handleGoogleLogin}
-            disabled={loading || showExpandedForm}
-            className={buttonSecondaryStyle}
-          >
-            {loading && step === 'EMAIL_STEP' ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <>
-                Acceder con
-                <GoogleIcon className="h-4 w-4" />
-              </>
-            )}
-          </button>
-
+          {/* Cuando SÍ está en modo login: campo contraseña + botón Acceder */}
           {showPasswordField && (
-            <button
-              onClick={handleReset}
-              disabled={loading}
-              className="h-[35px] px-2 text-xs text-muted-foreground hover:text-foreground"
-            >
-              ✕
-            </button>
+            <>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                  placeholder="Ingrese su contraseña"
+                  autoFocus
+                  disabled={loading}
+                  className={`h-[32px] w-[180px] px-3 text-xs rounded-md border bg-background focus:outline-none disabled:opacity-50 pr-9 ${
+                    isPasswordError 
+                      ? 'border-red-500' 
+                      : success 
+                        ? 'border-green-500' 
+                        : 'border-cyan-300/50 focus:border-cyan-500'
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+
+              <button
+                onClick={handleLogin}
+                disabled={loading || !password}
+                className="h-[32px] w-[90px] text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+              >
+                {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Acceder
+              </button>
+            </>
           )}
         </div>
 
@@ -389,7 +435,7 @@ export function ClientAccessInline() {
         {hasMessage && (
           <div className="mt-2 flex gap-2">
             <div
-              className={`h-[20px] flex items-center justify-center text-xs rounded border ${
+              className={`h-[20px] flex items-center justify-center text-xs rounded-md border ${
                 isPasswordError ? 'flex-1' : 'w-full'
               } ${
                 error
@@ -403,20 +449,17 @@ export function ClientAccessInline() {
               <button
                 onClick={handleResetPassword}
                 disabled={loading}
-                className="h-[20px] px-2 text-xs font-medium rounded border border-cyan-400 bg-cyan-50 text-cyan-600 hover:bg-cyan-100 disabled:opacity-50 whitespace-nowrap"
+                className="h-[20px] w-[150px] px-3 text-xs font-medium rounded-md border border-cyan-400 bg-cyan-50 text-cyan-600 hover:bg-cyan-100 disabled:opacity-50 whitespace-nowrap"
               >
                 Restablecer contraseña
               </button>
             )}
           </div>
         )}
-      </div>
 
-      {/* Formulario expandido - FIXED debajo del header */}
-      {showExpandedForm && (
-        <div className="fixed top-[97px] right-0 left-0 z-40 bg-muted/50 border-b backdrop-blur">
-          <div className="container mx-auto px-6 py-3 flex justify-end">
-            <div className="w-[420px] p-3 bg-card border border-cyan-300/30 rounded-lg shadow-lg">
+        {/* Formulario expandido - posicionado debajo del header, mismo ancho */}
+        {showExpandedForm && (
+          <div className="absolute top-full left-0 right-0 mt-[45px] p-4 bg-card border border-cyan-300/30 rounded-md shadow-lg z-50">
               {/* REGISTER - Formulario unificado */}
               {(step === 'REGISTER_START' || step === 'VERIFY_CODE') && (
                 <div className="space-y-2">
@@ -435,7 +478,7 @@ export function ClientAccessInline() {
                       placeholder="Nombre *"
                       autoFocus={step === 'REGISTER_START'}
                       disabled={step === 'VERIFY_CODE'}
-                      className="h-[32px] flex-1 px-2.5 text-sm rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:ring-2 focus:ring-cyan-400 disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="h-[32px] flex-1 px-3 text-sm rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:border-cyan-500 disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                     <input
                       type="text"
@@ -443,7 +486,7 @@ export function ClientAccessInline() {
                       onChange={(e) => setLastName(e.target.value)}
                       placeholder="Apellido *"
                       disabled={step === 'VERIFY_CODE'}
-                      className="h-[32px] flex-1 px-2.5 text-sm rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:ring-2 focus:ring-cyan-400 disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="h-[32px] flex-1 px-3 text-sm rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:border-cyan-500 disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                   </div>
                   <div className="flex gap-2">
@@ -451,7 +494,7 @@ export function ClientAccessInline() {
                       value={phonePrefix}
                       onChange={(e) => setPhonePrefix(e.target.value)}
                       disabled={step === 'VERIFY_CODE'}
-                      className="h-[32px] w-[100px] px-2 text-sm rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:ring-2 focus:ring-cyan-400 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="h-[32px] w-[110px] px-2 text-sm rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:border-cyan-500 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       {phonePrefixes.map((prefix) => (
                         <option key={prefix.code} value={prefix.code}>
@@ -465,7 +508,7 @@ export function ClientAccessInline() {
                       onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                       placeholder="Celular (opcional)"
                       disabled={step === 'VERIFY_CODE'}
-                      className="h-[32px] flex-1 px-2.5 text-sm rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:ring-2 focus:ring-cyan-400 disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="h-[32px] flex-1 px-3 text-sm rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:border-cyan-500 disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                   </div>
                   <div className="flex gap-2">
@@ -474,17 +517,19 @@ export function ClientAccessInline() {
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        onFocus={() => setPasswordFocused(true)}
+                        onBlur={() => setPasswordFocused(false)}
                         placeholder="Contraseña *"
                         disabled={step === 'VERIFY_CODE'}
-                        className="h-[32px] w-full px-2.5 pr-8 text-sm rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:ring-2 focus:ring-cyan-400 disabled:opacity-60 disabled:cursor-not-allowed"
+                        className={`h-[32px] w-full px-3 pr-9 text-sm rounded-md border bg-background focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed ${getPasswordBorderClass()}`}
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                         tabIndex={-1}
                       >
-                        {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
                     <div className="relative flex-1">
@@ -492,17 +537,19 @@ export function ClientAccessInline() {
                         type={showConfirmPassword ? 'text' : 'password'}
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
+                        onFocus={() => setConfirmPasswordFocused(true)}
+                        onBlur={() => setConfirmPasswordFocused(false)}
                         placeholder="Confirmar *"
                         disabled={step === 'VERIFY_CODE'}
-                        className="h-[32px] w-full px-2.5 pr-8 text-sm rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:ring-2 focus:ring-cyan-400 disabled:opacity-60 disabled:cursor-not-allowed"
+                        className={`h-[32px] w-full px-3 pr-9 text-sm rounded-md border bg-background focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed ${getPasswordBorderClass()}`}
                       />
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                         tabIndex={-1}
                       >
-                        {showConfirmPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
                   </div>
@@ -510,40 +557,49 @@ export function ClientAccessInline() {
                   {/* Sección de verificación de código (aparece después de presionar Registrar) */}
                   {step === 'VERIFY_CODE' && (
                     <>
-                      <div className="pt-2 border-t border-cyan-300/30">
+                      <div className="pt-3 border-t border-cyan-300/30">
                         <p className="text-xs text-muted-foreground text-center mb-2">
                           Ingresa el código enviado a <strong className="text-foreground">{email}</strong>
                         </p>
                         <input
                           type="text"
                           value={code}
-                          onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          onChange={(e) => {
+                            setCode(e.target.value.replace(/\D/g, '').slice(0, 6));
+                            setCodeStatus('idle');
+                          }}
                           onKeyDown={(e) => e.key === 'Enter' && handleVerifyAndFinalize()}
                           placeholder="000000"
                           maxLength={6}
                           autoFocus
-                          className="w-full h-10 px-3 text-center text-xl font-mono tracking-[0.3em] rounded-md border border-cyan-300/50 bg-background focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                          className={`w-full h-[32px] px-3 text-center text-xl font-mono tracking-[0.3em] rounded-md border bg-background focus:outline-none ${
+                            codeStatus === 'success' 
+                              ? 'border-green-500' 
+                              : codeStatus === 'error' 
+                                ? 'border-red-500' 
+                                : 'border-cyan-500'
+                          }`}
                         />
                       </div>
                     </>
                   )}
                   
                   {/* Botones */}
-                  <div className="flex gap-2 pt-1">
+                  <div className="flex gap-2 pt-3">
                     {step === 'REGISTER_START' ? (
                       <>
-                        {/* Cancelar (1/4) + Registrar (3/4) */}
+                        {/* Cancelar (mismo ancho que prefijo) + Registrar (mismo ancho que celular) */}
                         <button
                           onClick={handleReset}
                           disabled={loading}
-                          className="h-[32px] w-1/4 text-sm font-medium rounded-md border border-cyan-300/50 bg-background hover:bg-accent flex items-center justify-center text-muted-foreground hover:text-foreground"
+                          className="h-[32px] w-[110px] text-sm font-medium rounded-md border border-cyan-300/50 bg-background hover:bg-accent flex items-center justify-center text-muted-foreground hover:text-foreground"
                         >
                           Cancelar
                         </button>
                         <button
                           onClick={handleRequestCode}
                           disabled={loading || !firstName || !lastName || !password || !confirmPassword}
-                          className="h-[32px] w-3/4 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                          className="h-[32px] flex-1 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                         >
                           {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                           Registrar
@@ -576,9 +632,8 @@ export function ClientAccessInline() {
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      )}
+          )}
+      </div>
     </>
   );
 }

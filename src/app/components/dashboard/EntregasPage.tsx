@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Package, FileText, MapPin, User, ChevronUp, ChevronDown, Search, Plus, Edit, Download, Eye, Save, Printer, Truck, Clock, CheckCircle2, History, Loader2 } from 'lucide-react';
 import { EntregasKPICards } from './EntregasKPICards';
 import { 
@@ -41,6 +42,9 @@ interface ColumnVisibility {
 
 export function EntregasPage() {
   console.log('[EntregasPage] Renderizando...');
+  
+  const location = useLocation();
+  const searchInputRef = useRef<HTMLInputElement>(null);
   
   // Auth context - si hay usuario autenticado, usa Firestore
   const { user, profile, loading: authLoading } = useAuth();
@@ -127,6 +131,15 @@ export function EntregasPage() {
   const columnsMenuRef = useRef<HTMLDivElement>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const filtersRef = useRef<HTMLDivElement>(null);
+
+  // Hacer foco en el buscador si viene desde login exitoso
+  useEffect(() => {
+    if (location.state?.focusSearch && searchInputRef.current) {
+      searchInputRef.current.focus();
+      // Limpiar el estado para que no vuelva a hacer foco
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   // ============================================
   // SUSCRIPCIÓN A FIRESTORE (con fallback a mock data)
@@ -604,25 +617,26 @@ export function EntregasPage() {
       </div>
 
       {/* Barra de herramientas */}
-      <div className="flex items-center gap-4 px-6 py-3 bg-[#FF6B35] rounded-lg">
+      <div className="flex items-center gap-4 px-6 py-3 bg-[#FF6B35] rounded-md">
         {/* Buscador con autocompletado */}
         <div className="relative flex-1 max-w-md">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
+              ref={searchInputRef}
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onFocus={() => setShowSuggestions(true)}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
               placeholder="Buscar en esta vista..."
-              className="w-full h-[35px] pl-10 pr-4 border-0 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/30"
+              className="w-full h-[32px] pl-10 pr-4 border-0 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/30"
             />
           </div>
 
           {/* Sugerencias de autocompletado */}
           {showSuggestions && filteredSuggestions.length > 0 && (
-            <div className="absolute z-20 w-full mt-1 bg-card border rounded-lg shadow-lg max-h-64 overflow-y-auto">
+            <div className="absolute z-20 w-full mt-1 bg-card border rounded-md shadow-lg max-h-64 overflow-y-auto">
               {filteredSuggestions.map((suggestion, index) => (
                 <button
                   key={index}
@@ -641,7 +655,7 @@ export function EntregasPage() {
           {/* 1. Botón Nuevo */}
           <button
             onClick={handleNewEntrega}
-            className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors"
+            className="h-[32px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-md transition-colors"
           >
             <Plus className="h-4 w-4" />
             <span className="text-sm font-medium">Nuevo</span>
@@ -651,14 +665,14 @@ export function EntregasPage() {
           <button 
             onClick={handleEditEntrega}
             disabled={!selectedEntrega}
-            className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-[32px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Edit className="h-4 w-4" />
             <span className="text-sm font-medium">Editar</span>
           </button>
 
           {/* 3. Botón Importar */}
-          <button className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors">
+          <button className="h-[32px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-md transition-colors">
             <Download className="h-4 w-4 rotate-180" />
             <span className="text-sm font-medium">Importar</span>
           </button>
@@ -667,14 +681,14 @@ export function EntregasPage() {
           <div className="relative" ref={exportMenuRef}>
             <button 
               onClick={() => setShowExportMenu(!showExportMenu)}
-              className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors"
+              className="h-[32px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-md transition-colors"
             >
               <Download className="h-4 w-4" />
               <span className="text-sm font-medium">Exportar</span>
             </button>
 
             {showExportMenu && (
-              <div className="absolute right-0 top-12 w-48 bg-card border rounded-lg shadow-lg z-10 p-2">
+              <div className="absolute right-0 top-12 w-48 bg-card border rounded-md shadow-lg z-10 p-2">
                 <button className="w-full text-left px-4 py-2 hover:bg-muted rounded text-sm">
                   Exportar a Excel
                 </button>
@@ -689,7 +703,7 @@ export function EntregasPage() {
           </div>
 
           {/* 5. Botón Imprimir */}
-          <button className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors">
+          <button className="h-[32px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-md transition-colors">
             <Printer className="h-4 w-4" />
             <span className="text-sm font-medium">Imprimir</span>
           </button>
@@ -698,14 +712,14 @@ export function EntregasPage() {
           <div className="relative" ref={columnsMenuRef}>
             <button
               onClick={() => setShowColumnsMenu(!showColumnsMenu)}
-              className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors"
+              className="h-[32px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-md transition-colors"
             >
               <Eye className="h-4 w-4" />
               <span className="text-sm font-medium">Vista</span>
             </button>
 
             {showColumnsMenu && (
-              <div className="absolute right-0 top-12 w-56 bg-card border rounded-lg shadow-lg z-10 p-2">
+              <div className="absolute right-0 top-12 w-56 bg-card border rounded-md shadow-lg z-10 p-2">
                 <div className="text-xs font-medium text-muted-foreground px-3 py-2 border-b mb-2">
                   Mostrar columnas
                 </div>
@@ -778,18 +792,18 @@ export function EntregasPage() {
       </div>
 
       {/* Tabla de entregas */}
-      <div className="rounded-lg border bg-white shadow-sm overflow-hidden">
+      <div className="rounded-md border bg-white shadow-sm overflow-hidden">
         <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
           <table className="w-full">
             <thead className="sticky top-0 bg-[#00A9CE] border-b">
               <tr>
-                <th className="px-3.5 h-[35px] text-left">
+                <th className="px-3.5 h-[32px] text-left">
                   <input type="checkbox" className="rounded border-gray-400" />
                 </th>
                 
                 {columnVisibility.id && (
                   <th 
-                    className="px-3.5 h-[35px] text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer"
+                    className="px-3.5 h-[32px] text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer"
                     onClick={() => handleSort('id')}
                   >
                     <div className="flex items-center gap-1">
@@ -802,7 +816,7 @@ export function EntregasPage() {
                 )}
                 {columnVisibility.fecha && (
                   <th 
-                    className="px-3.5 h-[35px] text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer"
+                    className="px-3.5 h-[32px] text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer"
                     onClick={() => handleSort('fecha')}
                   >
                     <div className="flex items-center gap-1">
@@ -815,7 +829,7 @@ export function EntregasPage() {
                 )}
                 {columnVisibility.remitente && (
                   <th 
-                    className="px-3.5 h-[35px] text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer"
+                    className="px-3.5 h-[32px] text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer"
                     onClick={() => handleSort('remitente')}
                   >
                     <div className="flex items-center gap-1">
@@ -828,7 +842,7 @@ export function EntregasPage() {
                 )}
                 {columnVisibility.destinatario && (
                   <th 
-                    className="px-3.5 h-[35px] text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer"
+                    className="px-3.5 h-[32px] text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer"
                     onClick={() => handleSort('destinatario')}
                   >
                     <div className="flex items-center gap-1">
@@ -841,7 +855,7 @@ export function EntregasPage() {
                 )}
                 {columnVisibility.direccion && (
                   <th 
-                    className="px-3.5 h-[35px] text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer"
+                    className="px-3.5 h-[32px] text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer"
                     onClick={() => handleSort('direccion')}
                   >
                     <div className="flex items-center gap-1">
@@ -854,7 +868,7 @@ export function EntregasPage() {
                 )}
                 {columnVisibility.estado && (
                   <th 
-                    className="px-3.5 h-[35px] text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer"
+                    className="px-3.5 h-[32px] text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer"
                     onClick={() => handleSort('estado')}
                   >
                     <div className="flex items-center gap-1">
@@ -876,7 +890,7 @@ export function EntregasPage() {
                     index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                   } ${selectedId === entrega.id ? 'bg-blue-100' : ''}`}
                 >
-                  <td className="px-3.5 h-[35px]">
+                  <td className="px-3.5 h-[32px]">
                     <input 
                       type="checkbox" 
                       className="rounded border-gray-300"
@@ -884,32 +898,32 @@ export function EntregasPage() {
                     />
                   </td>
                   {columnVisibility.id && (
-                    <td className="px-3.5 h-[35px] text-sm text-gray-900">
+                    <td className="px-3.5 h-[32px] text-sm text-gray-900">
                       {entrega.id}
                     </td>
                   )}
                   {columnVisibility.fecha && (
-                    <td className="px-3.5 h-[35px] text-sm text-gray-900">
+                    <td className="px-3.5 h-[32px] text-sm text-gray-900">
                       {entrega.fecha}
                     </td>
                   )}
                   {columnVisibility.remitente && (
-                    <td className="px-3.5 h-[35px] text-sm text-gray-900">
+                    <td className="px-3.5 h-[32px] text-sm text-gray-900">
                       {entrega.remitente}
                     </td>
                   )}
                   {columnVisibility.destinatario && (
-                    <td className="px-3.5 h-[35px] text-sm text-gray-900">
+                    <td className="px-3.5 h-[32px] text-sm text-gray-900">
                       {entrega.destinatario}
                     </td>
                   )}
                   {columnVisibility.direccion && (
-                    <td className="px-3.5 h-[35px] text-sm text-gray-700">
+                    <td className="px-3.5 h-[32px] text-sm text-gray-700">
                       {entrega.direccion}
                     </td>
                   )}
                   {columnVisibility.estado && (
-                    <td className={`px-3.5 h-[35px] text-sm font-medium ${getEstadoColor(entrega.estado).split(' ')[0]}`}>
+                    <td className={`px-3.5 h-[32px] text-sm font-medium ${getEstadoColor(entrega.estado).split(' ')[0]}`}>
                       {entrega.estado}
                     </td>
                   )}
@@ -923,10 +937,10 @@ export function EntregasPage() {
       {/* Formularios y vistas de detalle en la parte inferior */}
       {showNewForm ? (
         /* Formulario Nueva/Editar Entrega */
-        <div className="rounded-lg border bg-white p-6 shadow-sm">
+        <div className="rounded-md border bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <div className={`p-2 rounded-lg ${isEditMode ? 'bg-blue-100' : 'bg-orange-100'}`}>
+              <div className={`p-2 rounded-md ${isEditMode ? 'bg-blue-100' : 'bg-orange-100'}`}>
                 {isEditMode ? (
                   <Edit className="h-5 w-5 text-[#00A9CE]" />
                 ) : (
@@ -946,14 +960,14 @@ export function EntregasPage() {
               <button
                 onClick={handleCancelForm}
                 disabled={savingData}
-                className="h-[35px] px-4 border rounded-lg hover:bg-gray-50 transition-colors flex items-center disabled:opacity-50"
+                className="h-[32px] px-4 border rounded-md hover:bg-gray-50 transition-colors flex items-center disabled:opacity-50"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSaveEntrega}
                 disabled={savingData}
-                className="h-[35px] flex items-center gap-2 px-4 bg-[#00A9CE] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="h-[32px] flex items-center gap-2 px-4 bg-[#00A9CE] text-white rounded-md hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {savingData ? (
                   <>
@@ -978,7 +992,7 @@ export function EntregasPage() {
                   type="date"
                   value={formData?.fecha || ''}
                   onChange={(e) => setFormData({ ...formData!, fecha: e.target.value })}
-                  className="w-full h-[35px] px-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                  className="w-full h-[32px] px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
                 />
               </div>
 
@@ -987,7 +1001,7 @@ export function EntregasPage() {
                 <select
                   value={formData?.estado || ''}
                   onChange={(e) => setFormData({ ...formData!, estado: e.target.value })}
-                  className="w-full h-[35px] px-3 border rounded-[8px] focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                  className="w-full h-[32px] px-3 border rounded-[8px] focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
                 >
                   {ESTADOS_ENTREGA.map(estado => (
                     <option key={estado} value={estado}>{estado}</option>
@@ -1002,7 +1016,7 @@ export function EntregasPage() {
                   value={formData?.remitente || ''}
                   onChange={(e) => setFormData({ ...formData!, remitente: e.target.value })}
                   placeholder="Nombre del remitente"
-                  className="w-full h-[35px] px-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                  className="w-full h-[32px] px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
                 />
               </div>
 
@@ -1013,7 +1027,7 @@ export function EntregasPage() {
                   value={formData?.destinatario || ''}
                   onChange={(e) => setFormData({ ...formData!, destinatario: e.target.value })}
                   placeholder="Nombre del destinatario"
-                  className="w-full h-[35px] px-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                  className="w-full h-[32px] px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
                 />
               </div>
 
@@ -1024,7 +1038,7 @@ export function EntregasPage() {
                   value={formData?.direccion || ''}
                   onChange={(e) => setFormData({ ...formData!, direccion: e.target.value })}
                   placeholder="Dirección completa"
-                  className="w-full h-[35px] px-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                  className="w-full h-[32px] px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
                 />
               </div>
 
@@ -1035,7 +1049,7 @@ export function EntregasPage() {
                   value={formData?.conductor || ''}
                   onChange={(e) => setFormData({ ...formData!, conductor: e.target.value })}
                   placeholder="Nombre del conductor"
-                  className="w-full h-[35px] px-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                  className="w-full h-[32px] px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
                 />
               </div>
 
@@ -1046,7 +1060,7 @@ export function EntregasPage() {
                   value={formData?.vehiculo || ''}
                   onChange={(e) => setFormData({ ...formData!, vehiculo: e.target.value })}
                   placeholder="Matrícula del vehículo"
-                  className="w-full h-[35px] px-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                  className="w-full h-[32px] px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
                 />
               </div>
             </div>
@@ -1058,7 +1072,7 @@ export function EntregasPage() {
                 value={formData?.observaciones || ''}
                 onChange={(e) => setFormData({ ...formData!, observaciones: e.target.value })}
                 placeholder="Notas adicionales sobre la entrega..."
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#00A9CE]"
               />
             </div>
           </div>
@@ -1067,9 +1081,9 @@ export function EntregasPage() {
         /* Dos tarjetas de detalle */
         <div className="grid grid-cols-2 gap-4">
           {/* Tarjeta 1: Detalle de la Entrega */}
-          <div className="rounded-lg border bg-white p-6 shadow-sm">
+          <div className="rounded-md border bg-white p-6 shadow-sm">
             <div className="flex items-center gap-4 mb-6">
-              <div className="p-2 rounded-lg bg-orange-100">
+              <div className="p-2 rounded-md bg-orange-100">
                 <Package className="h-5 w-5 text-[#FF6B35]" />
               </div>
               <div>
@@ -1148,7 +1162,7 @@ export function EntregasPage() {
                     <button
                       onClick={handleConfirmReceipt}
                       disabled={confirmingReceipt}
-                      className="w-full h-[35px] flex items-center justify-center gap-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                      className="w-full h-[32px] flex items-center justify-center gap-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
                     >
                       {confirmingReceipt ? (
                         <>
@@ -1169,9 +1183,9 @@ export function EntregasPage() {
           </div>
 
           {/* Tarjeta 2: Información de la Entrega */}
-          <div className="rounded-lg border bg-white p-6 shadow-sm">
+          <div className="rounded-md border bg-white p-6 shadow-sm">
             <div className="flex items-center gap-4 mb-6">
-              <div className="p-2 rounded-lg bg-blue-100">
+              <div className="p-2 rounded-md bg-blue-100">
                 <Truck className="h-5 w-5 text-[#00A9CE]" />
               </div>
               <div>
