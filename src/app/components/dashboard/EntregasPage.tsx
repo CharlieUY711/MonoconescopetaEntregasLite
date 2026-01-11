@@ -1,23 +1,19 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { Package, FileText, MapPin, User, ChevronUp, ChevronDown, Search, Plus, Edit, Filter, Download, Eye, X, Save, Check, Printer, Truck } from 'lucide-react';
+import { Package, FileText, MapPin, User, ChevronUp, ChevronDown, Search, Plus, Edit, Filter, Download, Eye, X, Save, Check, Printer, Truck, Clock, CheckCircle2, History } from 'lucide-react';
 import { EntregasKPICards } from './EntregasKPICards';
 import { 
   ESTADOS_ENTREGA, 
   getColorEstadoEntrega,
   type EstadoEntrega
 } from '../../data/catalogos';
-
-interface Entrega {
-  id: string;
-  fecha: string;
-  remitente: string;
-  destinatario: string;
-  direccion: string;
-  estado: string;
-  conductor: string;
-  vehiculo: string;
-  observaciones: string;
-}
+import { useRole, canManageEntregas, isClientRole, MOCK_CLIENT_ID } from '../../state/role';
+import { 
+  mockEntregasData, 
+  type Entrega, 
+  addHistoryEvent, 
+  formatTimestamp,
+  getEventTypeLabel 
+} from '../../data/entregas';
 
 type SortColumn = keyof Entrega | null;
 type SortDirection = 'asc' | 'desc';
@@ -31,90 +27,18 @@ interface ColumnVisibility {
   estado: boolean;
 }
 
-const mockEntregas: Entrega[] = [
-  { 
-    id: 'ETG-001', 
-    fecha: '2025-01-10',
-    remitente: 'Corporación ABC', 
-    destinatario: 'Almacenes del Sur', 
-    direccion: 'Av. Brasil 2345, Montevideo',
-    estado: 'En curso', 
-    conductor: 'Carlos Méndez',
-    vehiculo: 'ABC-1234',
-    observaciones: 'Entrega urgente - Cliente preferencial'
-  },
-  { 
-    id: 'ETG-002', 
-    fecha: '2025-01-10',
-    remitente: 'Distribuidora Norte', 
-    destinatario: 'Comercial Este', 
-    direccion: 'Bvar. Artigas 1234, Montevideo',
-    estado: 'Confirmado', 
-    conductor: 'Ana Silva',
-    vehiculo: 'XYZ-5678',
-    observaciones: 'Requiere firma del responsable'
-  },
-  { 
-    id: 'ETG-003', 
-    fecha: '2025-01-09',
-    remitente: 'Logística Central', 
-    destinatario: 'Farmacia Popular', 
-    direccion: '18 de Julio 987, Montevideo',
-    estado: 'Recibido', 
-    conductor: 'Juan Rodríguez',
-    vehiculo: 'LMN-9012',
-    observaciones: 'Entrega realizada sin novedad'
-  },
-  { 
-    id: 'ETG-004', 
-    fecha: '2025-01-09',
-    remitente: 'Importadora Global', 
-    destinatario: 'Tienda Tecnológica', 
-    direccion: 'Colonia 456, Montevideo',
-    estado: 'Borrador', 
-    conductor: '-',
-    vehiculo: '-',
-    observaciones: 'Esperando confirmación del destinatario'
-  },
-  { 
-    id: 'ETG-005', 
-    fecha: '2025-01-08',
-    remitente: 'Comercial Sur', 
-    destinatario: 'Supermercado Centro', 
-    direccion: 'Mercedes 789, Montevideo',
-    estado: 'En destino', 
-    conductor: 'María González',
-    vehiculo: 'RST-3456',
-    observaciones: 'Mercadería refrigerada'
-  },
-  { 
-    id: 'ETG-006', 
-    fecha: '2025-01-08',
-    remitente: 'Distribuidora Este', 
-    destinatario: 'Restaurant La Esquina', 
-    direccion: 'Yi 234, Montevideo',
-    estado: 'Recibido', 
-    conductor: 'Pedro Martínez',
-    vehiculo: 'UVW-7890',
-    observaciones: 'Entrega completada 14:30hs'
-  },
-  { 
-    id: 'ETG-007', 
-    fecha: '2025-01-07',
-    remitente: 'Almacén Central', 
-    destinatario: 'Ferretería Industrial', 
-    direccion: 'Canelones 567, Montevideo',
-    estado: 'Cancelado', 
-    conductor: '-',
-    vehiculo: '-',
-    observaciones: 'Cancelado por cliente - Reprogramar'
-  }
-];
-
 export function EntregasPage() {
+  // Estado de rol
+  const [currentRole] = useRole();
+  const showManageActions = canManageEntregas(currentRole);
+  const isClient = isClientRole(currentRole);
+
+  // Estado de entregas (mutable para simular cambios)
+  const [entregas, setEntregas] = useState<Entrega[]>(mockEntregasData);
+  
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-  const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(mockEntregas[0]);
+  const [selectedEntrega, setSelectedEntrega] = useState<Entrega | null>(null);
   const [detailView, setDetailView] = useState<'entrega' | 'envio'>('entrega');
   const [searchTerm, setSearchTerm] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -175,14 +99,29 @@ export function EntregasPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Filtrar entregas según rol (Cliente solo ve sus entregas)
+  const visibleEntregas = useMemo(() => {
+    if (isClient) {
+      return entregas.filter(e => e.ownerId === MOCK_CLIENT_ID);
+    }
+    return entregas;
+  }, [entregas, isClient]);
+
+  // Seleccionar primera entrega visible al cambiar de rol
+  useEffect(() => {
+    if (visibleEntregas.length > 0 && (!selectedEntrega || !visibleEntregas.find(e => e.id === selectedEntrega.id))) {
+      setSelectedEntrega(visibleEntregas[0]);
+    }
+  }, [visibleEntregas, selectedEntrega]);
+
   // Datos para autocompletado
   const allSearchableData = useMemo(() => {
     const data: string[] = [];
-    mockEntregas.forEach(entrega => {
+    visibleEntregas.forEach(entrega => {
       data.push(entrega.id, entrega.remitente, entrega.destinatario, entrega.direccion, entrega.estado);
     });
     return [...new Set(data)];
-  }, []);
+  }, [visibleEntregas]);
 
   const filteredSuggestions = searchTerm
     ? allSearchableData.filter(item =>
@@ -192,7 +131,7 @@ export function EntregasPage() {
 
   // Ordenamiento de entregas
   const sortedEntregas = useMemo(() => {
-    let filtered = [...mockEntregas];
+    let filtered = [...visibleEntregas];
 
     // Aplicar filtros
     if (filterEstado.length > 0) {
@@ -223,7 +162,7 @@ export function EntregasPage() {
     }
 
     return filtered.slice(0, 7); // Últimas 7 entregas
-  }, [sortColumn, sortDirection, searchTerm, filterEstado]);
+  }, [visibleEntregas, sortColumn, sortDirection, searchTerm, filterEstado]);
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -236,7 +175,15 @@ export function EntregasPage() {
 
   const handleRowClick = (entrega: Entrega) => {
     setSelectedEntrega(entrega);
-    setShowNewForm(false);
+    // B) EDICIÓN DIRECTA: Al hacer click en fila, entrar en modo edición automáticamente
+    if (showManageActions) {
+      setEditEntregaForm({ ...entrega });
+      setIsEditMode(true);
+      setShowNewForm(true);
+    } else {
+      // Para clientes: solo mostrar detalle sin edición
+      setShowNewForm(false);
+    }
   };
 
   const handleNewEntrega = () => {
@@ -263,7 +210,69 @@ export function EntregasPage() {
   };
 
   const handleSaveEntrega = () => {
-    console.log('Guardando entrega:', isEditMode ? editEntregaForm : newEntregaForm);
+    if (isEditMode && editEntregaForm) {
+      // A) FIX: Actualizar el array de entregas para que la tabla refleje los cambios
+      const now = new Date().toISOString();
+      const updatedEntregas = entregas.map(e => {
+        if (e.id === editEntregaForm.id) {
+          // Detectar si hubo cambio de estado
+          const estadoCambio = e.estado !== editEntregaForm.estado;
+          const newHistory = [...e.history];
+          
+          if (estadoCambio) {
+            newHistory.push({
+              type: 'STATUS_CHANGE',
+              timestamp: now,
+              description: `Estado: ${e.estado} → ${editEntregaForm.estado}`
+            });
+          }
+          
+          // Agregar evento de actualización general
+          newHistory.push({
+            type: 'UPDATED',
+            timestamp: now,
+            description: 'Registro actualizado'
+          });
+          
+          return {
+            ...editEntregaForm,
+            history: newHistory
+          };
+        }
+        return e;
+      });
+      
+      setEntregas(updatedEntregas);
+      
+      // Actualizar selectedEntrega para reflejar cambios en detalle
+      const updatedSelected = updatedEntregas.find(e => e.id === editEntregaForm.id);
+      if (updatedSelected) {
+        setSelectedEntrega(updatedSelected);
+      }
+    } else if (!isEditMode) {
+      // Crear nueva entrega
+      const now = new Date().toISOString();
+      const newId = `ETG-${String(entregas.length + 1).padStart(3, '0')}`;
+      const newEntrega: Entrega = {
+        id: newId,
+        fecha: newEntregaForm.fecha,
+        remitente: newEntregaForm.remitente,
+        destinatario: newEntregaForm.destinatario,
+        direccion: newEntregaForm.direccion,
+        estado: newEntregaForm.estado,
+        conductor: newEntregaForm.conductor || '-',
+        vehiculo: newEntregaForm.vehiculo || '-',
+        observaciones: newEntregaForm.observaciones || '',
+        ownerId: 'admin', // Por defecto, el admin crea
+        history: [
+          { type: 'CREATED', timestamp: now, description: 'Entrega creada' }
+        ]
+      };
+      
+      setEntregas(prev => [newEntrega, ...prev]);
+      setSelectedEntrega(newEntrega);
+    }
+    
     setShowNewForm(false);
     setIsEditMode(false);
   };
@@ -297,6 +306,58 @@ export function EntregasPage() {
     setFilterEstado([]);
     setFilterFecha([]);
   };
+
+  // Función para confirmar recepción (acuse de recibo)
+  const handleConfirmReceipt = () => {
+    if (!selectedEntrega || selectedEntrega.estado !== 'En destino' || !isClient) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `¿Confirmar la recepción de la entrega ${selectedEntrega.id}?\n\nEsta acción cambiará el estado a "Recibido".`
+    );
+
+    if (confirmed) {
+      const now = new Date().toISOString();
+      
+      // Actualizar la entrega
+      const updatedEntregas = entregas.map(e => {
+        if (e.id === selectedEntrega.id) {
+          const updated: Entrega = {
+            ...e,
+            estado: 'Recibido',
+            acuseTimestamp: now,
+            history: [
+              ...e.history,
+              { 
+                type: 'CLIENT_CONFIRMED_RECEIPT', 
+                timestamp: now, 
+                description: 'Cliente confirmó recepción' 
+              },
+              { 
+                type: 'STATUS_CHANGE', 
+                timestamp: now, 
+                description: 'Estado: En destino → Recibido' 
+              }
+            ]
+          };
+          return updated;
+        }
+        return e;
+      });
+
+      setEntregas(updatedEntregas);
+      
+      // Actualizar la entrega seleccionada
+      const updatedSelected = updatedEntregas.find(e => e.id === selectedEntrega.id);
+      if (updatedSelected) {
+        setSelectedEntrega(updatedSelected);
+      }
+    }
+  };
+
+  // Verificar si puede mostrar botón de acuse de recibo
+  const canShowReceiptButton = isClient && selectedEntrega?.estado === 'En destino';
 
   const getEstadoColor = (estado: string) => {
     const colors = getColorEstadoEntrega(estado);
@@ -349,57 +410,65 @@ export function EntregasPage() {
 
         {/* Botones a la derecha */}
         <div className="flex items-center gap-4 ml-auto">
-          {/* Botón Nuevo */}
-          <button
-            onClick={handleNewEntrega}
-            className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="text-sm font-medium">Nueva</span>
-          </button>
-
-          {/* Botón Editar */}
-          <button 
-            onClick={handleEditEntrega}
-            disabled={!selectedEntrega}
-            className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Edit className="h-4 w-4" />
-            <span className="text-sm font-medium">Editar</span>
-          </button>
-
-          {/* Botón Exportar */}
-          <div className="relative" ref={exportMenuRef}>
-            <button 
-              onClick={() => setShowExportMenu(!showExportMenu)}
+          {/* Botón Nuevo - Solo para gestores (Admin/Chofer) */}
+          {showManageActions && (
+            <button
+              onClick={handleNewEntrega}
               className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors"
             >
-              <Download className="h-4 w-4" />
-              <span className="text-sm font-medium">Exportar</span>
+              <Plus className="h-4 w-4" />
+              <span className="text-sm font-medium">Nueva</span>
             </button>
+          )}
 
-            {showExportMenu && (
-              <div className="absolute right-0 top-12 w-48 bg-card border rounded-lg shadow-lg z-10 p-2">
-                <button className="w-full text-left px-4 py-2 hover:bg-muted rounded text-sm">
-                  Exportar a Excel
-                </button>
-                <button className="w-full text-left px-4 py-2 hover:bg-muted rounded text-sm">
-                  Exportar a PDF
-                </button>
-                <button className="w-full text-left px-4 py-2 hover:bg-muted rounded text-sm">
-                  Exportar a CSV
-                </button>
-              </div>
-            )}
-          </div>
+          {/* Botón Editar - Solo para gestores (Admin/Chofer) */}
+          {showManageActions && (
+            <button 
+              onClick={handleEditEntrega}
+              disabled={!selectedEntrega}
+              className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Edit className="h-4 w-4" />
+              <span className="text-sm font-medium">Editar</span>
+            </button>
+          )}
 
-          {/* Botón Imprimir */}
-          <button className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors">
-            <Printer className="h-4 w-4" />
-            <span className="text-sm font-medium">Imprimir</span>
-          </button>
+          {/* Botón Exportar - Solo para gestores (Admin/Chofer) */}
+          {showManageActions && (
+            <div className="relative" ref={exportMenuRef}>
+              <button 
+                onClick={() => setShowExportMenu(!showExportMenu)}
+                className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <Download className="h-4 w-4" />
+                <span className="text-sm font-medium">Exportar</span>
+              </button>
 
-          {/* Botón Vista (Columnas) */}
+              {showExportMenu && (
+                <div className="absolute right-0 top-12 w-48 bg-card border rounded-lg shadow-lg z-10 p-2">
+                  <button className="w-full text-left px-4 py-2 hover:bg-muted rounded text-sm">
+                    Exportar a Excel
+                  </button>
+                  <button className="w-full text-left px-4 py-2 hover:bg-muted rounded text-sm">
+                    Exportar a PDF
+                  </button>
+                  <button className="w-full text-left px-4 py-2 hover:bg-muted rounded text-sm">
+                    Exportar a CSV
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Botón Imprimir - Solo para gestores (Admin/Chofer) */}
+          {showManageActions && (
+            <button className="h-[35px] flex items-center gap-2 px-4 text-white hover:bg-white/10 rounded-lg transition-colors">
+              <Printer className="h-4 w-4" />
+              <span className="text-sm font-medium">Imprimir</span>
+            </button>
+          )}
+
+          {/* Botón Vista (Columnas) - Visible para todos */}
           <div className="relative" ref={columnsMenuRef}>
             <button
               onClick={() => setShowColumnsMenu(!showColumnsMenu)}
@@ -811,6 +880,43 @@ export function EntregasPage() {
                     {selectedEntrega.estado}
                   </span>
                 </div>
+
+                {/* Sección Acuse de Recibo */}
+                <div className="pt-4 border-t mt-4">
+                  <div className="flex items-center gap-4 text-sm">
+                    <CheckCircle2 className="h-4 w-4 text-gray-400" />
+                    <span className="text-gray-600 w-32">Acuse de recibo</span>
+                    <div className="flex items-center gap-2">
+                      {selectedEntrega.acuseTimestamp ? (
+                        <>
+                          <span className="font-medium text-green-600 px-2 py-1 rounded-full text-xs bg-green-50">
+                            Confirmado
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {formatTimestamp(selectedEntrega.acuseTimestamp)}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="font-medium text-amber-600 px-2 py-1 rounded-full text-xs bg-amber-50">
+                          Pendiente
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botón Marcar como Recibido - Solo Cliente + Estado "En destino" */}
+                {canShowReceiptButton && (
+                  <div className="pt-4 border-t mt-4">
+                    <button
+                      onClick={handleConfirmReceipt}
+                      className="w-full h-[35px] flex items-center justify-center gap-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span className="text-sm font-medium">Marcar como recibido</span>
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -851,6 +957,45 @@ export function EntregasPage() {
                   <span className="font-medium text-gray-900">
                     {selectedEntrega.observaciones || 'Sin observaciones'}
                   </span>
+                </div>
+
+                {/* Sección Historial */}
+                <div className="pt-4 border-t mt-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <History className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm font-semibold text-gray-700">Historial</span>
+                  </div>
+                  
+                  <div className="space-y-2 max-h-[150px] overflow-y-auto">
+                    {selectedEntrega.history && selectedEntrega.history.length > 0 ? (
+                      [...selectedEntrega.history].reverse().map((event, index) => (
+                        <div key={index} className="flex items-start gap-3 text-xs">
+                          <div className="flex-shrink-0 mt-0.5">
+                            <Clock className="h-3 w-3 text-gray-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className={`font-medium ${
+                                event.type === 'CLIENT_CONFIRMED_RECEIPT' 
+                                  ? 'text-green-600' 
+                                  : 'text-gray-700'
+                              }`}>
+                                {getEventTypeLabel(event.type)}
+                              </span>
+                              <span className="text-gray-400">
+                                {formatTimestamp(event.timestamp)}
+                              </span>
+                            </div>
+                            {event.description && (
+                              <p className="text-gray-500 mt-0.5">{event.description}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-gray-400">Sin historial disponible</p>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

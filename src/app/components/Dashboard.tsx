@@ -1,6 +1,5 @@
 import { Sidebar } from './dashboard/Sidebar';
 import { Topbar } from './dashboard/Topbar';
-import { DashboardHome } from './dashboard/DashboardHome';
 import { PerformancePage } from './dashboard/PerformancePage';
 import { EntitiesPage } from './dashboard/EntitiesPage';
 import { PeoplePage } from './dashboard/PeoplePage';
@@ -20,7 +19,8 @@ export function Dashboard({ userRole = 'operator', userName = 'Usuario' }: Dashb
       
       <main className="ml-64 pt-[94px] px-6 pb-6">
         <Routes>
-          <Route index element={<DashboardHome userRole={userRole} />} />
+          {/* C) FIX: Inicio = Entregas - Ambas rutas muestran la misma vista */}
+          <Route index element={<EntregasPage />} />
           <Route path="entregas" element={<EntregasPage />} />
           <Route path="configuracion/rendimiento" element={<PerformancePage userRole={userRole} />} />
           <Route path="base-datos/entidades" element={<EntitiesPage />} />
