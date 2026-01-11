@@ -326,7 +326,7 @@ export function ClientAccessInline() {
             className={buttonPrimaryStyle}
           >
             {loading && !showExpandedForm && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            {showPasswordField ? 'Ingresar' : 'Avanzar'}
+            {showPasswordField ? 'Ingresar' : 'Acceso/Registro'}
           </button>
 
           <button
@@ -337,9 +337,11 @@ export function ClientAccessInline() {
             {loading && step === 'EMAIL_STEP' ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
-              <GoogleIcon className="h-4 w-4" />
+              <>
+                Acceder con
+                <GoogleIcon className="h-4 w-4" />
+              </>
             )}
-            Acceder
           </button>
 
           {showPasswordField && (
